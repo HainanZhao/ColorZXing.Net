@@ -10,7 +10,8 @@ var bitmap = ColorZXingMono.Encode("This is the text you want to encode", 400, 4
 //To decode the same QR code
 var txtDecoded = ColorZXingMono.Decode(bitmapRead)
 ```
-* Generate and Decode QR Code fully utilizing the RGB channels. You can encode more information with this method.
+![](Images/redpink.png)
+* Generate and Decode QR Code fully utilizing the RGB channels. In theory, you can encode 3x more information with this method, compared to the black and white only method.
 ```
 //To generate a colorful QR Code with RGB colors
 var bitmap = ColorZXingRGB.Encode("This is the text you want to encode", 400, 400, 0);
@@ -18,3 +19,8 @@ var bitmap = ColorZXingRGB.Encode("This is the text you want to encode", 400, 40
 //To decode the same QR Code
 var txtDecoded = ColorZXingRGB.Decode(bitmap);
 ```
+![](Images/test.png)
+
+
+As a comparasion, this is the same QR images generated using only Black and White color.
+![](Images/basic.png)
