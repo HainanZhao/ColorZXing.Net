@@ -16,7 +16,7 @@ namespace NUnitTest
         {
             string filePath = TestUtils.GetFilePath(fileName);
 
-            var bitmapWrite = ColorZXingRGB.Encode(TestUtils.TextOriginal, 500, 500, 0);
+            var bitmapWrite = ColorZXingRGB.Encode(TestUtils.TextOriginal, 400, 400, 0);
             ColorZXing.Utils.WriteBitMap(bitmapWrite, filePath, format);
 
             var bitmapRead = ColorZXing.Utils.ReadBitMap(filePath);
