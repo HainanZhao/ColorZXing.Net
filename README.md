@@ -1,5 +1,5 @@
 # ColorZXing.Net
-A colorful QR code generator based on ZXing.Net
+A colorful QR code Generator and Decoder based on ZXing.Net
 
 ![](Images/test.png)
 
