@@ -25,7 +25,11 @@ var bitmap = ColorZXingRGB.Encode("This is the text you want to encode", 400, 40
 var txtDecoded = ColorZXingRGB.Decode(bitmap);
 ```
 
-The following QR code are generated using the same text.
+The following QR code are generated using the same text block(1200 chars).
 
 ![](Images/test.png) ![](Images/basic.png)
+
+# Performance
+For a 500 x 500 QR code, the encoding and decoding each takes abuot 100 ~ 150 ms on a quad core 2GHz laptop CPU. 
+
 
