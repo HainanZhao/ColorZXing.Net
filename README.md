@@ -1,7 +1,7 @@
 # ColorZXing.Net
 A colorful QR code Generator and Decoder based on ZXing.Net
 
-![](Images/test.png)
+![](Images/icon.jpg)
 
 # Features
 * Generate and Decode QR Code with Mono tone Color. 
