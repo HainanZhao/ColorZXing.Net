@@ -17,13 +17,13 @@ namespace NUnitTest
         {
             string filePath = TestUtils.GetFilePath("basic.png");
 
-            var bitmapWrite = ColorZXingBasic.Encode(TestUtils.TextOriginal, 400, 400, 0);
+            var bitmapWrite = ColorZXingBasic.Encode(TestUtils.TextLong, 400, 400, 0);
             ColorZXing.Utils.WriteBitMap(bitmapWrite, filePath, ImageFormat.Png);
 
             var bitmapRead = ColorZXing.Utils.ReadBitMap(filePath);
             var txtDecoded = ColorZXingBasic.Decode(bitmapRead);
 
-            Assert.AreEqual(TestUtils.TextOriginal, txtDecoded);
+            Assert.AreEqual(TestUtils.TextLong, txtDecoded);
         }
     }
 }

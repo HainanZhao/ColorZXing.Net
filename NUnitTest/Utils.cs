@@ -5,7 +5,7 @@ namespace NUnitTest
 {
     public class TestUtils
     {
-        public static readonly string TextOriginal =
+        public static readonly string TextLong =
             @"JfHIur6hePTqT7E3YU7jxHFpTbDYrW9AMQGbaEJyjBGqlylshDhrdPqqgOPS6rYH1AEauJWCdD0OK4OU4bOu3wjihKILKN9UkzXiGeQQJRdBnMVtOtSDqmD9
             14SC9nOMPP7Hai4jaQKqZAw9JZbDEPm36WDaWtPIQik907A8YVww8LYYZ8TNUMHMCVCFjtSXnkZUeBVfIdwj0CbiqINBhWNsUHqIzoDTnXKe1KgppRj8GaZd
             K9s5S8J3gWyN6mnN5j470lKLlL2OV0qylEzbTIq3t4y2PzLZ4Bm9aUlmuxQLg0bJBZA7r38gdjM6eE9VvbZvmtNT9vbm18Lwh9pLstDFPxQdOVLMXgjRawQL
@@ -15,6 +15,7 @@ namespace NUnitTest
             odYyCmzAW3J1dgKkpIpRzx9YQ0mpgNj1ef7hjVCC5AfWc2fpQUX1JTqqDsZ7QFVwDN5iGhXi53uvyUPbPb0pn73QnCayVreuuBmT4Mt8DMvSiHvH5Yrmw7eM
             5PFeTIuAzdRuBVwnU1gVMBqkv0zBFsXuibSlBRfuy3YRztrmQEE0hinJWTKr96TZach0YTt9909Zn3GoQEZxBU5UeyJw2f2145gJauzpe1dRKeIVMcu72ggc";
 
+        public static readonly string TextShort = "This is ColorZXing.Net, a lib that can generate colorful QR Codes.";
 
         public static string GetFilePath(string fileName)
         { 

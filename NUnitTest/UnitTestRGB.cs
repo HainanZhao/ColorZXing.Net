@@ -12,30 +12,35 @@ namespace NUnitTest
         {
         }
 
-        private void TestRGB(string fileName, ImageFormat format)
+        private void TestRGB(string value, string fileName, ImageFormat format)
         {
             string filePath = TestUtils.GetFilePath(fileName);
 
-            var bitmapWrite = ColorZXingRGB.Encode(TestUtils.TextOriginal, 400, 400, 0);
+            var bitmapWrite = ColorZXingRGB.Encode(value, 400, 400, 0);
             ColorZXing.Utils.WriteBitMap(bitmapWrite, filePath, format);
 
             var bitmapRead = ColorZXing.Utils.ReadBitMap(filePath);
             var txtDecoded = ColorZXingRGB.Decode(bitmapRead);
 
-            Assert.AreEqual(TestUtils.TextOriginal, txtDecoded);
+            Assert.AreEqual(value, txtDecoded);
         }
 
         [Test]
         public void TestPngFile()
         {
-            TestRGB("test.png", ImageFormat.Png);
+            TestRGB(TestUtils.TextLong, "test.png", ImageFormat.Png);
         }
 
         [Test]
         public void TestJpgFile()
         {
-            TestRGB("test.jpg", ImageFormat.Jpeg);
+            TestRGB(TestUtils.TextLong, "test.jpg", ImageFormat.Jpeg);
         }
 
+        [Test]
+        public void TestShortText()
+        {
+            TestRGB(TestUtils.TextShort, "shorttext.png", ImageFormat.Png);
+        }
     }
 }

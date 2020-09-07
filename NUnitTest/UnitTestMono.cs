@@ -13,61 +13,61 @@ namespace NUnitTest
         {
         }
 
-        private void TestMonoColor(string fileName, Color color)
+        private void TestMonoColor(string value, string fileName, Color color)
         {
             string filePath = TestUtils.GetFilePath(fileName);
 
-            var bitmapWrite = ColorZXingMono.Encode(TestUtils.TextOriginal, 400, 400, 0, color);
+            var bitmapWrite = ColorZXingMono.Encode(value, 400, 400, 0, color);
             ColorZXing.Utils.WriteBitMap(bitmapWrite, filePath, ImageFormat.Png);
 
             var bitmapRead = Utils.ReadBitMap(filePath);
             var txtDecoded = ColorZXingMono.Decode(bitmapRead);
 
-            Assert.AreEqual(TestUtils.TextOriginal, txtDecoded);
+            Assert.AreEqual(TestUtils.TextLong, txtDecoded);
         }
 
-        private void TestMonoColor(string fileName, Color color1, Color color2)
+        private void TestMonoColor(string value, string fileName, Color color1, Color color2)
         {
             string filePath = TestUtils.GetFilePath(fileName);
 
-            var bitmapWrite = ColorZXingMono.Encode(TestUtils.TextOriginal, 400, 400, 0, color1, color2);
+            var bitmapWrite = ColorZXingMono.Encode(value, 400, 400, 0, color1, color2);
             ColorZXing.Utils.WriteBitMap(bitmapWrite, filePath, ImageFormat.Png);
 
             var bitmapRead = Utils.ReadBitMap(filePath);
             var txtDecoded = ColorZXingMono.Decode(bitmapRead);
 
-            Assert.AreEqual(TestUtils.TextOriginal, txtDecoded);
+            Assert.AreEqual(value, txtDecoded);
         }
 
         [Test]
         public void TestRed()
         {
-            TestMonoColor("red.png", Color.Red);
+            TestMonoColor(TestUtils.TextLong, "red.png", Color.Red);
         }
 
         [Test]
         public void TestPink()
         {
-            TestMonoColor("pink.png", Color.Pink);
+            TestMonoColor(TestUtils.TextLong, "pink.png", Color.Pink);
         }
 
         [Test]
         public void TestGreen()
         {
-            TestMonoColor("green.png", Color.Green);
+            TestMonoColor(TestUtils.TextLong, "green.png", Color.Green);
         }
 
 
         [Test]
         public void TestRedPink()
         {
-            TestMonoColor("redpink.png", Color.Red, Color.Pink);
+            TestMonoColor(TestUtils.TextLong, "redpink.png", Color.Red, Color.Pink);
         }
 
         [Test]
         public void TestBlueYellow()
         {
-            TestMonoColor("blueyellow.png", Color.Blue, Color.Yellow);
+            TestMonoColor(TestUtils.TextLong, "blueyellow.png", Color.Blue, Color.Yellow);
         }
     }
 }
