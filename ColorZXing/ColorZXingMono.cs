@@ -7,10 +7,8 @@ using ZXing.QrCode;
 
 namespace ColorZXing
 {
-    public class ColorZXingMono : ColorZXingBasic
-    {
-
-       
+    public class ColorZXingMono
+    {       
         private static void SetBitmapData(Bitmap bitmap, byte[] bytedata, Color color)
         {
             var bmd = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
@@ -164,6 +162,21 @@ namespace ColorZXing
             SetBitmapData(bitmap, pixelData.Pixels, color1, color2);
 
             return bitmap;
+        }
+        
+        public static string Decode(Bitmap bitmap)
+        {
+            return ColorZXingBasic.Decode(bitmap);
+        }
+
+        public static string Decode(byte[] bytes)
+        {
+            return ColorZXingBasic.Decode(bytes);
+        }
+
+        public static string Decode(Uri url)
+        {
+            return ColorZXingBasic.Decode(url);
         }
     }
 }

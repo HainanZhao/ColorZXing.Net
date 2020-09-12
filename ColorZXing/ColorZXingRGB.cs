@@ -7,7 +7,7 @@ using static ZXing.RGBLuminanceSource;
 
 namespace ColorZXing
 {    
-    public class ColorZXingRGB : ColorZXingBasic
+    public class ColorZXingRGB
     {        
         ///Use the IntPtr method instead of bitmap.GetPixel, it's 6x faster.
         private static void SetBitmap(Bitmap bitmap, byte[] red, byte[] green, byte[] blue)
@@ -63,7 +63,7 @@ namespace ColorZXing
             };
         }
 
-        public static new Bitmap Encode(string value, int width, int height, int margin)
+        public static Bitmap Encode(string value, int width, int height, int margin)
         {
 
             int subStringSize = value.Length / 3;
@@ -97,7 +97,7 @@ namespace ColorZXing
             return bitmap;
         }
         
-        public static new string Decode(Bitmap bitmap)
+        public static string Decode(Bitmap bitmap)
         {
             var byteSize = bitmap.Width * bitmap.Height * Constants.Gray8PixelSize;
 
@@ -106,11 +106,23 @@ namespace ColorZXing
             byte[] red = new byte[byteSize];
 
             GetRGBByteArrayFromBitmap(bitmap, blue, green, red);
-            var str1 = Decode(blue, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
-            var str2 = Decode(green, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
-            var str3 = Decode(red, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
+            var str1 = ColorZXingBasic.Decode(blue, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
+            var str2 = ColorZXingBasic.Decode(green, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
+            var str3 = ColorZXingBasic.Decode(red, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
 
             return str1 + str2 + str3;
-        }               
+        }
+
+        public static string Decode(byte[] bytes)
+        {
+            var bitmap = Utils.CreateBitmap(bytes);
+            return Decode(bitmap);
+        }
+
+        public static string Decode(Uri url)
+        {
+            var bitmap = Utils.DownloadBitmap(url);
+            return Decode(bitmap);
+        }
     }
 }

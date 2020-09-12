@@ -12,9 +12,11 @@
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageReleaseNotes>Added Decode function
+* Decode(byte[] bytes)
+* Decode(Uri url)</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
