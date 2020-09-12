@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using ZXing;
 using ZXing.Common;
 using ZXing.QrCode;
@@ -46,19 +47,6 @@ namespace ColorZXing
             };
         }
 
-        protected static string Decode(byte[] bytes, int width, int height, BitmapFormat format)
-        {
-            var source = new RGBLuminanceSource(bytes, width, height, format);
-            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
-            Result qrResult = new MultiFormatReader().decode(bitmap);
-
-            if (qrResult != null)
-            {
-                return qrResult.Text;
-            }
-            return string.Empty;
-        }
-
         public static Bitmap Encode(string value, int width, int height, int margin)
         {
             var qrCodeWriter = new BarcodeWriterPixelData
@@ -78,13 +66,37 @@ namespace ColorZXing
             return bitmap;
         }
 
+        public static string Decode(byte[] bytes, int width, int height, BitmapFormat format)
+        {
+            var source = new RGBLuminanceSource(bytes, width, height, format);
+            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+            Result qrResult = new MultiFormatReader().decode(bitmap);
+
+            if (qrResult != null)
+            {
+                return qrResult.Text;
+            }
+            return string.Empty;
+        }
+
         public static string Decode(Bitmap bitmap)
         {
             var byteSize = bitmap.Width * bitmap.Height * Constants.Gray8PixelSize;
-
             byte[] byteData = new byte[byteSize];
             GetGray8ByteArrayFromBitmap(bitmap, byteData);
             return Decode(byteData, bitmap.Width, bitmap.Height, BitmapFormat.Gray8);
+        }
+
+        public static string Decode(byte[] bytes)
+        {
+            var bitmap = Utils.CreateBitmap(bytes);
+            return Decode(bitmap);
+        }
+
+        public static string Decode(Uri url)
+        {
+            var bitmap = Utils.DownloadBitmap(url);
+            return Decode(bitmap);
         }
     }
 }

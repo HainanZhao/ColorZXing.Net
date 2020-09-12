@@ -1,5 +1,6 @@
 ﻿using ColorZXing;
 using NUnit.Framework;
+using System;
 using System.Drawing.Imaging;
 
 
@@ -24,6 +25,13 @@ namespace NUnitTest
             var txtDecoded = ColorZXingBasic.Decode(bitmapRead);
 
             Assert.AreEqual(TestUtils.TextLong, txtDecoded);
+        }
+
+        [Test]
+        public void TestBasicUri()
+        {            
+            var textDecoded = ColorZXingBasic.Decode(new Uri("https://raw.githubusercontent.com/HainanZhao/ColorZXing.Net/master/Images/basic.png"));
+            Assert.AreEqual(TestUtils.TextLong, textDecoded);
         }
     }
 }

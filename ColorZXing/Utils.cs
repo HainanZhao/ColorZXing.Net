@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Net;
 using System.Text;
 
 namespace ColorZXing
@@ -35,6 +36,21 @@ namespace ColorZXing
         {
             var bitmap = new Bitmap(filePath);
             return bitmap;
+        }
+
+        public static Bitmap CreateBitmap(byte[] bytes)
+        {
+            using (var ms = new MemoryStream(bytes))
+            {
+                return new Bitmap(ms);
+            }
+        }
+
+        public static Bitmap DownloadBitmap(Uri url)
+        {
+            var webClient = new WebClient();
+            var bytes = webClient.DownloadData(url.AbsoluteUri);
+            return CreateBitmap(bytes);
         }
     }
 }
