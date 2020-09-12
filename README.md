@@ -4,9 +4,9 @@ A colorful QR code Generator and Decoder based on ZXing.Net
 <img src="Images/icon.jpg" width="200" height="200">
 
 # Releases
-[![N|NuGet](https://img.shields.io/badge/nuget-0.1.1-blue)](https://www.nuget.org/packages/ColorZXing.Net/)
+[![N|NuGet](https://img.shields.io/badge/nuget-0.1.x-blue)](https://www.nuget.org/packages/ColorZXing.Net/)
 ```
-Install-Package ColorZXing.Net -Version 0.1.1
+Install-Package ColorZXing.Net
 ```
 # Features
 * Generate and Decode QR Code with Mono tone Color. 
