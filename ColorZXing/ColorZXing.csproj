@@ -13,21 +13,17 @@
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes>Breaking changes and performance improvements
-* Rebuilt pixel conversion: removed per-byte Marshal P/Invoke, bitmap bits now unlocked in try/finally (fixes memory leak)
-* SIMD (Ssse3) color deinterleave with pointer fallback, ~2x faster decode
-* TargetFramework is now net8.0 only (no more netstandard2.0/net45)
-* Updated dependencies: ZXing.Net 0.16.11, System.Drawing.Common 4.7.3 (GHSA-rxg9 security fix)
-* Decoder now preserves the original line endings of the encoded payload</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds the package readme and documentation
+* Includes README.md in the NuGet package
+* No functional changes relative to 0.2.0</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\Images\icon.jpg">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
+    <None Include="..\Images\icon.jpg" Pack="True" PackagePath="" />
+    <None Include="..\README.md" Pack="True" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
