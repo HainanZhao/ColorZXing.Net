@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Text;
 using ZXing;
 using ZXing.QrCode;
 
@@ -113,7 +114,8 @@ namespace ColorZXing
                 {
                     Height = height,
                     Width = width,
-                    Margin = margin
+                    Margin = margin,
+                    CharacterSet = Encoding.UTF8.WebName
                 }
             };
 
@@ -153,7 +155,8 @@ namespace ColorZXing
                 {
                     Height = height,
                     Width = width,
-                    Margin = margin
+                    Margin = margin,
+                    CharacterSet = Encoding.UTF8.WebName
                 }
             };
 

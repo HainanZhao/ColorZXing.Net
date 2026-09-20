@@ -13,7 +13,7 @@ carrying three independent QR payloads.
 Requires .NET 8 or later.
 
 ```sh
-dotnet add package ColorZXing.Net --version 0.3.0
+dotnet add package ColorZXing.Net
 ```
 
 The bitmap API uses System.Drawing.Common, currently pinned to 4.7.3. Windows is
@@ -115,6 +115,12 @@ Recorded Release-build measurements on Linux x64, .NET 8.0.31, 400×400 images,
 | Encode | 7.513 ms | 3.082 ms |
 | Decode managed allocations | 1,115 KiB | 514 KiB |
 | Encode managed allocations | 2,139 KiB | 214 KiB |
+
+The conventional black-and-white path was subsequently optimized with direct
+bit-matrix rendering and a QR-specific adaptive decoder. For the same 200
+character workload, median decode time fell from 5.744 ms to 1.810 ms and
+encode time from 3.372 ms to 2.203 ms. Encode allocations fell from 883 KiB to
+258 KiB. `ColorZXingMono` uses the same decoder and receives the decode benefit.
 
 These are workload-specific measurements, not performance guarantees. They
 combine algorithm changes and CPU parallelism; they do not isolate either

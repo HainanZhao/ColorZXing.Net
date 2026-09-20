@@ -80,7 +80,8 @@ internal static class Program
         var payloadLength = int.TryParse(Environment.GetEnvironmentVariable("COLORZXING_BENCH_LENGTH"), out var configuredLength)
             ? configuredLength
             : 200;
-        using var bitmap = ColorZXingRGB.EncodeLegacy(TestString(payloadLength), W, H, 0);
+        var expected = TestString(payloadLength);
+        using var bitmap = ColorZXingRGB.EncodeLegacy(expected, W, H, 0);
 
         time("RGB v0 legacy (Marshal.ReadByte x3)", () => Legacy.GetRGBByteArrayFromBitmap(bitmap, bufA, bufB, bufC));
         time("RGB v1 row-copy  (current PR-style) ", () => RowCopyRGB(bitmap, bufA, bufB, bufC));
@@ -97,7 +98,6 @@ internal static class Program
         sw.Stop();
         Console.WriteLine($"\nEnd-to-end ColorZXingRGB.Decode 400x400 (library as-is): {sw.ElapsedMilliseconds / (double)Iterations:F2} ms/op");
 
-        var expected = TestString(payloadLength);
         benchmarkDecode("Decode v0 current (3x MultiFormat + detect)", bitmap, expected, DecodeCurrent);
         benchmarkDecode("Decode v1 QR-only serial               ", bitmap, expected, DecodeQrSerial);
         benchmarkDecode("Decode v2 QR-only parallel             ", bitmap, expected, DecodeQrParallel);
@@ -109,13 +109,26 @@ internal static class Program
         benchmarkEncode("Encode v0 current (3 full raster buffers)", expected, value => ColorZXingRGB.EncodeLegacy(value, W, H, 0));
         benchmarkEncode("Encode v1 prototype module renderer    ", expected, value => EncodeOnePass(value, W, H, 0));
         benchmarkEncode("Encode v2 optimized library            ", expected, value => ColorZXingRGB.Encode(value, W, H, 0));
+
+        using var basicLegacy = ColorZXingBasic.EncodeLegacy(expected, W, H, 4);
+        using var basicCurrent = ColorZXingBasic.Encode(expected, W, H, 4);
+        benchmarkDecode("Basic decode v0 fixed + MultiFormat    ", basicLegacy, expected, ColorZXingBasic.DecodeLegacy);
+        benchmarkDecode("Basic decode v1 QR fast path only      ", basicCurrent, expected, ColorZXingBasic.TryDecodeQr);
+        benchmarkDecode("Basic decode v1 adaptive + QR-only     ", basicCurrent, expected, ColorZXingBasic.Decode);
+        benchmarkEncode("Basic encode v0 full pixel buffer      ", expected, value => ColorZXingBasic.EncodeLegacy(value, W, H, 4), ColorZXingBasic.Decode);
+        benchmarkEncode("Basic encode v1 direct bitmap render   ", expected, value => ColorZXingBasic.Encode(value, W, H, 4), ColorZXingBasic.Decode);
     }
 
     private static void benchmarkEncode(string name, string value, Func<string, Bitmap> encode)
     {
+        benchmarkEncode(name, value, encode, ColorZXingRGB.Decode);
+    }
+
+    private static void benchmarkEncode(string name, string value, Func<string, Bitmap> encode, Func<Bitmap, string> decode)
+    {
         using (var check = encode(value))
         {
-            if (ColorZXingRGB.Decode(check) != value)
+            if (decode(check) != value)
                 throw new InvalidOperationException($"{name} did not round-trip");
         }
 

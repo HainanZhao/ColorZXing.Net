@@ -13,10 +13,10 @@
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes>Shared RGB QR geometry and module sampling with legacy decode fallback; combined raster rendering; parallel QR payload processing; Unicode-safe UTF-8 splitting and common QR versions; bitmap resource lifetime fixes; expanded regression tests and performance documentation.</PackageReleaseNotes>
+    <PackageReleaseNotes>Optimizes conventional and custom-color QR decoding with a QR-only adaptive fast path and preserves generic barcode compatibility through fallback. Renders conventional QR bit matrices directly, expands image/color/fallback regression coverage, and adds comparative benchmarks.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

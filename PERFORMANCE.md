@@ -78,3 +78,20 @@ symbol and use one new error-correction stream. That would no longer contain
 three standards-compatible QR symbols and would require a new capacity table,
 mask scoring rules, error model, and decoder. It is a separate format design,
 not a safe optimization of this one.
+
+## Conventional QR fast path
+
+`ColorZXingBasic` and `ColorZXingMono` now try a QR-specific path before the
+generic barcode reader. It preserves continuous luminance values for adaptive
+binarization instead of applying a fixed threshold first. For ordinary black
+and white images, SSSE3 extracts one component because all components are
+equal. Colored symbols that cannot be decoded from that component are retried
+using average RGB luminance. The raw pixel-buffer overload retains the generic
+multi-format reader as fallback, preserving non-QR barcode compatibility.
+
+For a 200-character payload and 400x400 image, the median of seven process runs
+was 5.744 ms versus 1.810 ms for decode (3.17x faster), and 3.372 ms versus
+2.203 ms for encode (1.53x faster). Decode allocations fell from 217 KiB to
+195 KiB; encode allocations fell from 883 KiB to 258 KiB. At 1,200 characters,
+three runs gave median decode times of 6.840 ms versus 2.387 ms and median
+encode times of 5.842 ms versus 5.273 ms.
