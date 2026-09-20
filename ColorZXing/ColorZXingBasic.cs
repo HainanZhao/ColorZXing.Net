@@ -28,23 +28,34 @@ namespace ColorZXing
         private static void GetGray8ByteArrayFromBitmap(Bitmap bitmap, byte[] bytedata)
         {
             var bmd = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
-            var width = bitmap.Width;
-            var height = bitmap.Height;
-            var stride = bmd.Stride;
-            var scan0 = bmd.Scan0;
-
-            for (int y = 0; y < height; y++)
+            try
             {
-                var row = IntPtr.Add(scan0, (y * stride));
-                for (int x = 0; x < width; x++)
+                var width = bitmap.Width;
+                var height = bitmap.Height;
+                var stride = bmd.Stride;
+                unsafe
                 {
-                    var imgIndex = IntPtr.Add(row, x * Constants.PixelSize);
-                    var index = (y * width + x) * Constants.Gray8PixelSize;
-                    int grayScale = Utils.GetGrayScale(Marshal.ReadByte(IntPtr.Add(imgIndex, 0)), Marshal.ReadByte(IntPtr.Add(imgIndex, 1)), Marshal.ReadByte(IntPtr.Add(imgIndex, 2)));
-                    byte blackOrWhite = grayScale < 128 ? (byte)0 : (byte)255;
-                    bytedata[index] = blackOrWhite;                             
+                    var src = (byte*)bmd.Scan0;
+                    fixed (byte* pd = bytedata)
+                    {
+                        var d = pd;
+                        for (int y = 0; y < height; y++)
+                        {
+                            var row = src + y * stride;
+                            for (int x = 0; x < width; x++)
+                            {
+                                var q = row + x * Constants.PixelSize;
+                                var grayScale = (*q + q[1] + q[2]) / 3;
+                                *d++ = grayScale < 128 ? (byte)0 : (byte)255;
+                            }
+                        }
+                    }
                 }
-            };
+            }
+            finally
+            {
+                bitmap.UnlockBits(bmd);
+            }
         }
 
         public static Bitmap Encode(string value, int width, int height, int margin)

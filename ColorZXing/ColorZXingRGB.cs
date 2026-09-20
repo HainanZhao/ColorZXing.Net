@@ -2,7 +2,9 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using ZXing.QrCode;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using static ZXing.RGBLuminanceSource;
 
 namespace ColorZXing
@@ -18,18 +20,23 @@ namespace ColorZXing
                 var width = bitmap.Width;
                 var height = bitmap.Height;
                 var stride = bmd.Stride;
-                var scan0 = bmd.Scan0;
-
-                for (int y = 0; y < height; y++)
+                unsafe
                 {
-                    var row = IntPtr.Add(scan0, (y * stride));
-                    for (int x = 0; x < width; x++)
+                    var dst = (byte*)bmd.Scan0;
+                    fixed (byte* pr = red, pg = green, pb = blue)
                     {
-                        var imgIndex = IntPtr.Add(row, x * Constants.PixelSize);
-                        var index = (y * width + x) * Constants.PixelSize;
-                        Marshal.WriteByte(IntPtr.Add(imgIndex, 0), red[index]);
-                        Marshal.WriteByte(IntPtr.Add(imgIndex, 1), green[index + 1]);
-                        Marshal.WriteByte(IntPtr.Add(imgIndex, 2), blue[index + 2]);
+                        for (int y = 0; y < height; y++)
+                        {
+                            var row = dst + y * stride;
+                            for (int x = 0; x < width; x++)
+                            {
+                                var index = (y * width + x) * Constants.PixelSize;
+                                var q = row + x * Constants.PixelSize;
+                                q[0] = pr[index];
+                                q[1] = pg[index + 1];
+                                q[2] = pb[index + 2];
+                            }
+                        }
                     }
                 }
             }
@@ -43,24 +50,72 @@ namespace ColorZXing
         private static void GetRGBByteArrayFromBitmap(Bitmap bitmap, byte[] blue, byte[] green, byte[] red)
         {
             var bmd = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
-            var width = bitmap.Width;
-            var height = bitmap.Height;
-            var stride = bmd.Stride;
-            var scan0 = bmd.Scan0;
-            
-            for (int y = 0; y < height; y++)            
+            try
             {
-                var row = IntPtr.Add(scan0, (y * stride));
-                for (int x = 0; x < width; x++)
+                var width = bitmap.Width;
+                var height = bitmap.Height;
+                var stride = bmd.Stride;
+                unsafe
                 {
-                    var imgIndex = IntPtr.Add(row, x * Constants.PixelSize);
-                    var index = (y * width + x) * Constants.Gray8PixelSize;
-
-                    blue[index] = Marshal.ReadByte(IntPtr.Add(imgIndex, 0));
-                    green[index] = Marshal.ReadByte(IntPtr.Add(imgIndex, 1));
-                    red[index] = Marshal.ReadByte(IntPtr.Add(imgIndex, 2));
+                    var src = (byte*)bmd.Scan0;
+                    fixed (byte* pb = blue, pg = green, pr = red)
+                    {
+                        var db = pb;
+                        var dg = pg;
+                        var dr = pr;
+                        if (Ssse3.IsSupported)
+                        {
+                            var maskB = Vector128.Create((byte)0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12);
+                            var maskG = Vector128.Create((byte)1, 5, 9, 13, 1, 5, 9, 13, 1, 5, 9, 13, 1, 5, 9, 13);
+                            var maskR = Vector128.Create((byte)2, 6, 10, 14, 2, 6, 10, 14, 2, 6, 10, 14, 2, 6, 10, 14);
+                            var simdPixels = width & ~3;
+                            for (int y = 0; y < height; y++)
+                            {
+                                var row = src + y * stride;
+                                for (int x = 0; x < simdPixels; x += 4)
+                                {
+                                    var v = Sse2.LoadVector128(row + x * Constants.PixelSize);
+                                    Write4(ref db, Ssse3.Shuffle(v, maskB));
+                                    Write4(ref dg, Ssse3.Shuffle(v, maskG));
+                                    Write4(ref dr, Ssse3.Shuffle(v, maskR));
+                                }
+                                for (int x = simdPixels; x < width; x++)
+                                {
+                                    var q = row + x * Constants.PixelSize;
+                                    *db++ = q[0];
+                                    *dg++ = q[1];
+                                    *dr++ = q[2];
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (int y = 0; y < height; y++)
+                            {
+                                var row = src + y * stride;
+                                for (int x = 0; x < width; x++)
+                                {
+                                    var q = row + x * Constants.PixelSize;
+                                    *db++ = q[0];
+                                    *dg++ = q[1];
+                                    *dr++ = q[2];
+                                }
+                            }
+                        }
+                    }
                 }
-            };
+            }
+            finally
+            {
+                bitmap.UnlockBits(bmd);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe void Write4(ref byte* d, Vector128<byte> v)
+        {
+            *(uint*)d = (uint)Vector128.AsUInt64(v).GetElement(0);
+            d += 4;
         }
 
         public static Bitmap Encode(string value, int width, int height, int margin)

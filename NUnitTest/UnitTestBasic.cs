@@ -29,9 +29,10 @@ namespace NUnitTest
 
         [Test]
         public void TestBasicUri()
-        {            
+        {
             var textDecoded = ColorZXingBasic.Decode(new Uri("https://raw.githubusercontent.com/HainanZhao/ColorZXing.Net/master/Images/basic.png"));
-            Assert.AreEqual(TestUtils.TextLong, textDecoded);
+            var expected = TestUtils.TextLong.Replace("\n", "\r\n");
+            Assert.AreEqual(expected, textDecoded);
         }
     }
 }
