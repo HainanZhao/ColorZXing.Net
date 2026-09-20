@@ -1,0 +1,286 @@
+﻿@page "/"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<PageTitle>ColorZXing.Net · RGB QR demo</PageTitle>
+
+<div class="site-shell">
+    <header class="masthead">
+        <a class="brand" href="./" aria-label="ColorZXing home">
+            <span class="brand-mark"><i></i><i></i><i></i></span>
+            <span>ColorZXing<span class="muted">.Net</span></span>
+        </a>
+        <nav>
+            <a href="https://www.nuget.org/packages/ColorZXing.Net" target="_blank" rel="noreferrer">NuGet</a>
+            <a href="https://github.com/HainanZhao/ColorZXing.Net" target="_blank" rel="noreferrer">GitHub ↗</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="eyebrow"><span></span> Live in your browser</div>
+            <h1>Three QR codes.<br/><em>One spectrum.</em></h1>
+            <p>Generate and decode RGB color QR codes entirely on this page. The QR engine runs in .NET WebAssembly; your text and images never leave the browser.</p>
+            <div class="tech-row">
+                <span>.NET 8 WASM</span><span>ZXing.Net</span><span>Zero uploads</span>
+            </div>
+        </section>
+
+        <section class="workspace" aria-label="QR code tools">
+            <div class="tool-panel generate-panel">
+                <div class="panel-heading">
+                    <div><span class="step">01</span><h2>Generate</h2></div>
+                    <span class="status-dot">Ready</span>
+                </div>
+
+                <label for="payload">Payload</label>
+                <textarea id="payload" @bind="_payload" maxlength="2400" spellcheck="false"></textarea>
+                <div class="field-meta"><span>@_payload.Length characters</span><span>UTF-8</span></div>
+
+                <div class="control-grid">
+                    <div>
+                        <label for="mode">Symbol</label>
+                        <select id="mode" @bind="_generateMode">
+                            <option value="rgb">RGB · 3 channels</option>
+                            <option value="basic">Black &amp; white</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="size">Size</label>
+                        <select id="size" @bind="_size">
+                            <option value="320">320 px</option>
+                            <option value="400">400 px</option>
+                            <option value="512">512 px</option>
+                            <option value="640">640 px</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="margin">Quiet zone</label>
+                        <select id="margin" @bind="_margin">
+                            <option value="0">0 modules</option>
+                            <option value="2">2 modules</option>
+                            <option value="4">4 modules</option>
+                            <option value="6">6 modules</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="primary-action" @onclick="GenerateAsync" disabled="@_busy">
+                    <span>@(_busy ? "Working…" : "Generate code")</span><b>→</b>
+                </button>
+                @if (!string.IsNullOrWhiteSpace(_generateError))
+                {
+                    <p class="error-message" role="alert">@_generateError</p>
+                }
+            </div>
+
+            <div class="result-panel">
+                <div class="canvas-frame @(_hasGenerated ? "has-image" : "")">
+                    <canvas @ref="_generatedCanvas" aria-label="Generated QR code"></canvas>
+                    @if (!_hasGenerated)
+                    {
+                        <div class="canvas-placeholder"><span>RGB</span><p>Your generated code appears here</p></div>
+                    }
+                </div>
+                <div class="result-footer">
+                    <div>
+                        <strong>@(_hasGenerated ? $"{_generatedWidth} × {_generatedHeight}" : "Awaiting input")</strong>
+                        <span>@(_hasGenerated ? $"Generated in {_generateMs:F1} ms" : "Choose settings and generate")</span>
+                        @if (_roundTripOk is not null)
+                        {
+                            <span class="@(_roundTripOk == true ? "verified" : "verification-failed")">
+                                @(_roundTripOk == true ? $"✓ Round trip verified in {_verifyMs:F1} ms" : "Round trip mismatch")
+                            </span>
+                        }
+                    </div>
+                    <button class="icon-action" @onclick="DownloadAsync" disabled="@(!_hasGenerated)" title="Download PNG">↓ PNG</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="decode-section">
+            <div class="section-intro">
+                <span class="step">02</span>
+                <div><h2>Decode an image</h2><p>Choose a PNG, JPEG, GIF, or WebP. Canvas supplies raw RGBA pixels to the .NET decoder.</p></div>
+            </div>
+
+            <div class="decode-grid">
+                <div class="upload-card">
+                    <input id="image-file" @ref="_fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp" @onchange="LoadAndDecodeAsync" />
+                    <label for="image-file">
+                        <span class="upload-icon">＋</span>
+                        <strong>Choose a QR image</strong>
+                        <small>Decoded locally · max 12 MB</small>
+                    </label>
+                    <div class="decode-mode">
+                        <label for="decode-mode">Decoder</label>
+                        <select id="decode-mode" @bind="_decodeMode">
+                            <option value="rgb">RGB · 3 channels</option>
+                            <option value="basic">Black &amp; white</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="upload-preview">
+                    <canvas @ref="_uploadCanvas" aria-label="Uploaded QR image"></canvas>
+                    @if (_uploadInfo is null)
+                    {
+                        <span>No image selected</span>
+                    }
+                </div>
+
+                <div class="decoded-output">
+                    <span class="output-label">Decoded payload</span>
+                    @if (_decoding)
+                    {
+                        <p class="decoding">Reading modules…</p>
+                    }
+                    else if (!string.IsNullOrEmpty(_decodeError))
+                    {
+                        <p class="error-message" role="alert">@_decodeError</p>
+                    }
+                    else if (!string.IsNullOrEmpty(_decodedText))
+                    {
+                        <pre>@_decodedText</pre>
+                        <div class="decode-meta">@_uploadInfo?.Name · @_uploadInfo?.Width × @_uploadInfo?.Height · @_decodeMs.ToString("F1") ms</div>
+                    }
+                    else
+                    {
+                        <p class="empty-output">The decoded text will appear here.</p>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works">
+            <div><span>01</span><h3>Split</h3><p>UTF-8 text is balanced across three QR payloads.</p></div>
+            <div><span>02</span><h3>Compose</h3><p>Binary modules map onto blue, green, and red planes.</p></div>
+            <div><span>03</span><h3>Share</h3><p>One geometry pass samples every channel at once.</p></div>
+        </section>
+    </main>
+
+    <footer><span>ColorZXing.Net · MIT</span><span>Runs entirely client-side</span></footer>
+</div>
+
+@code {
+    private IJSObjectReference? _module;
+    private ElementReference _generatedCanvas;
+    private ElementReference _uploadCanvas;
+    private ElementReference _fileInput;
+    private string _payload = "Color QR codes carry three synchronized payload layers — hello from .NET WebAssembly!";
+    private string _generateMode = "rgb";
+    private string _decodeMode = "rgb";
+    private int _size = 400;
+    private int _margin = 4;
+    private bool _busy;
+    private bool _hasGenerated;
+    private int _generatedWidth;
+    private int _generatedHeight;
+    private double _generateMs;
+    private double _verifyMs;
+    private bool? _roundTripOk;
+    private string? _generateError;
+    private bool _decoding;
+    private string? _decodedText;
+    private string? _decodeError;
+    private double _decodeMs;
+    private UploadInfo? _uploadInfo;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/canvas.js");
+        await GenerateAsync();
+    }
+
+    private async Task GenerateAsync()
+    {
+        if (_module is null || _busy) return;
+        _busy = true;
+        _generateError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var image = _generateMode == "rgb"
+                ? ColorZXingRGB.EncodeRgba(_payload, _size, _size, _margin)
+                : ColorZXingBasic.EncodeRgba(_payload, _size, _size, _margin);
+            stopwatch.Stop();
+
+            await _module.InvokeVoidAsync("drawPixels", _generatedCanvas, image.Width, image.Height, image.Pixels);
+            var verifyStopwatch = Stopwatch.StartNew();
+            var verifiedText = _generateMode == "rgb"
+                ? ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height)
+                : ColorZXingBasic.DecodeRgba(image.Pixels, image.Width, image.Height);
+            verifyStopwatch.Stop();
+            _generatedWidth = image.Width;
+            _generatedHeight = image.Height;
+            _generateMs = stopwatch.Elapsed.TotalMilliseconds;
+            _verifyMs = verifyStopwatch.Elapsed.TotalMilliseconds;
+            _roundTripOk = string.Equals(_payload, verifiedText, StringComparison.Ordinal);
+            _hasGenerated = true;
+        }
+        catch (Exception exception)
+        {
+            _generateError = exception.Message;
+            _roundTripOk = null;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadAndDecodeAsync()
+    {
+        if (_module is null) return;
+        _decoding = true;
+        _decodeError = null;
+        _decodedText = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            _uploadInfo = await _module.InvokeAsync<UploadInfo>("loadSelectedImage", _fileInput, _uploadCanvas, 1400, 12 * 1024 * 1024);
+            var pixels = await _module.InvokeAsync<byte[]>("readPixels", _uploadCanvas);
+            var stopwatch = Stopwatch.StartNew();
+            _decodedText = _decodeMode == "rgb"
+                ? ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height)
+                : ColorZXingBasic.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height);
+            stopwatch.Stop();
+            _decodeMs = stopwatch.Elapsed.TotalMilliseconds;
+            if (string.IsNullOrEmpty(_decodedText))
+                _decodeError = "No QR payload was found. Check the decoder type and image quality.";
+        }
+        catch (Exception exception)
+        {
+            _decodeError = exception.Message;
+        }
+        finally
+        {
+            _decoding = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DownloadAsync()
+    {
+        if (_module is not null && _hasGenerated)
+            await _module.InvokeVoidAsync("downloadCanvas", _generatedCanvas, $"colorzxing-{_generateMode}.png");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null) await _module.DisposeAsync();
+    }
+
+    private sealed class UploadInfo
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
+    }
+}

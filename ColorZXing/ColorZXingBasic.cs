@@ -19,13 +19,22 @@ namespace ColorZXing
     {
         public static Bitmap Encode(string value, int width, int height, int margin)
         {
+            return Render(CreateMatrix(value, width, height, margin));
+        }
+
+        public static ColorZXingPixelData EncodeRgba(string value, int width, int height, int margin)
+        {
+            return RenderRgba(CreateMatrix(value, width, height, margin));
+        }
+
+        private static BitMatrix CreateMatrix(string value, int width, int height, int margin)
+        {
             var hints = new Dictionary<EncodeHintType, object>
             {
                 [EncodeHintType.MARGIN] = margin,
                 [EncodeHintType.CHARACTER_SET] = Encoding.UTF8.WebName
             };
-            var matrix = new QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hints);
-            return Render(matrix);
+            return new QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hints);
         }
 
         internal static Bitmap EncodeLegacy(string value, int width, int height, int margin)
@@ -55,6 +64,12 @@ namespace ColorZXing
                 return qrResult;
 
             return DecodeGeneric(new RGBLuminanceSource(bytes, width, height, format));
+        }
+
+        public static string DecodeRgba(byte[] rgba, int width, int height)
+        {
+            ValidateRgba(rgba, width, height);
+            return Decode(rgba, width, height, BitmapFormat.RGBA32);
         }
 
         public static string Decode(Bitmap bitmap)
@@ -131,6 +146,36 @@ namespace ColorZXing
                 bitmap.Dispose();
                 throw;
             }
+        }
+
+        private static ColorZXingPixelData RenderRgba(BitMatrix matrix)
+        {
+            var pixels = new byte[checked(matrix.Width * matrix.Height * 4)];
+            for (var y = 0; y < matrix.Height; y++)
+            {
+                for (var x = 0; x < matrix.Width; x++)
+                {
+                    var offset = (y * matrix.Width + x) * 4;
+                    var value = matrix[x, y] ? (byte)0 : (byte)255;
+                    pixels[offset] = value;
+                    pixels[offset + 1] = value;
+                    pixels[offset + 2] = value;
+                    pixels[offset + 3] = 255;
+                }
+            }
+            return new ColorZXingPixelData(pixels, matrix.Width, matrix.Height);
+        }
+
+        private static void ValidateRgba(byte[] rgba, int width, int height)
+        {
+            if (rgba == null)
+                throw new ArgumentNullException(nameof(rgba));
+            if (width <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(height));
+            if (rgba.Length != checked(width * height * 4))
+                throw new ArgumentException("RGBA data must contain exactly four bytes per pixel.", nameof(rgba));
         }
 
         private static void SetBitmap(Bitmap bitmap, PixelData pixelData)

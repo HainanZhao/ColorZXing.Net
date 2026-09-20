@@ -130,6 +130,16 @@ namespace ColorZXing
 
         public static Bitmap Encode(string value, int width, int height, int margin)
         {
+            return RenderCombined(EncodeLayers(value), width, height, margin);
+        }
+
+        public static ColorZXingPixelData EncodeRgba(string value, int width, int height, int margin)
+        {
+            return RenderCombinedRgba(EncodeLayers(value), width, height, margin);
+        }
+
+        private static QRCode[] EncodeLayers(string value)
+        {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
@@ -152,7 +162,7 @@ namespace ColorZXing
                 codes[i] = QrEncoder.encode(parts[i], ErrorCorrectionLevel.L, hints);
             });
 
-            return RenderCombined(codes, width, height, margin);
+            return codes;
         }
 
         internal static Bitmap EncodeLegacy(string value, int width, int height, int margin)
@@ -195,6 +205,12 @@ namespace ColorZXing
                 throw new ArgumentNullException(nameof(bitmap));
 
             return TryDecodeShared(bitmap) ?? DecodeLegacy(bitmap);
+        }
+
+        public static string DecodeRgba(byte[] rgba, int width, int height)
+        {
+            var planes = GetPlanesFromRgba(rgba, width, height);
+            return TryDecodeShared(planes, width, height) ?? DecodePlanesLegacy(planes, width, height);
         }
 
         internal static string DecodeLegacy(Bitmap bitmap)
@@ -310,15 +326,61 @@ namespace ColorZXing
             }
         }
 
+        private static ColorZXingPixelData RenderCombinedRgba(QRCode[] codes, int width, int height, int margin)
+        {
+            GetRenderGeometry(codes, width, height, margin, out var dimension, out var outputWidth,
+                out var outputHeight, out var multiple, out var left, out var top);
+
+            var pixels = new byte[checked(outputWidth * outputHeight * 4)];
+            for (var y = 0; y < outputHeight; y++)
+            {
+                var moduleY = (y - top) / multiple;
+                var insideY = y >= top && moduleY < dimension;
+                for (var x = 0; x < outputWidth; x++)
+                {
+                    var moduleX = (x - left) / multiple;
+                    var inside = insideY && x >= left && moduleX < dimension;
+                    var offset = (y * outputWidth + x) * 4;
+                    pixels[offset] = inside && codes[2].Matrix[moduleX, moduleY] == 1 ? (byte)0 : (byte)255;
+                    pixels[offset + 1] = inside && codes[1].Matrix[moduleX, moduleY] == 1 ? (byte)0 : (byte)255;
+                    pixels[offset + 2] = inside && codes[0].Matrix[moduleX, moduleY] == 1 ? (byte)0 : (byte)255;
+                    pixels[offset + 3] = 255;
+                }
+            }
+            return new ColorZXingPixelData(pixels, outputWidth, outputHeight);
+        }
+
+        private static void GetRenderGeometry(QRCode[] codes, int width, int height, int margin,
+            out int dimension, out int outputWidth, out int outputHeight, out int multiple,
+            out int left, out int top)
+        {
+            if (width < 0 || height < 0)
+                throw new ArgumentException($"Requested dimensions are too small: {width}x{height}");
+            if (margin < 0)
+                throw new ArgumentOutOfRangeException(nameof(margin));
+
+            dimension = codes[0].Matrix.Width;
+            var qrDimension = checked(dimension + margin * 2);
+            outputWidth = Math.Max(width, qrDimension);
+            outputHeight = Math.Max(height, qrDimension);
+            multiple = Math.Min(outputWidth / qrDimension, outputHeight / qrDimension);
+            left = (outputWidth - dimension * multiple) / 2;
+            top = (outputHeight - dimension * multiple) / 2;
+        }
+
         internal static string TryDecodeShared(Bitmap bitmap)
+        {
+            var length = checked(bitmap.Width * bitmap.Height);
+            var planes = new[] { new byte[length], new byte[length], new byte[length] };
+            GetRGBByteArrayFromBitmap(bitmap, planes[0], planes[1], planes[2]);
+            return TryDecodeShared(planes, bitmap.Width, bitmap.Height);
+        }
+
+        private static string TryDecodeShared(byte[][] planes, int width, int height)
         {
             try
             {
-                var length = checked(bitmap.Width * bitmap.Height);
-                var planes = new[] { new byte[length], new byte[length], new byte[length] };
-                GetRGBByteArrayFromBitmap(bitmap, planes[0], planes[1], planes[2]);
-
-                var source = new PlaneLuminanceSource(planes[0], bitmap.Width, bitmap.Height);
+                var source = new PlaneLuminanceSource(planes[0], width, height);
                 var detectorMatrix = new BinaryBitmap(new HybridBinarizer(source)).BlackMatrix;
                 var detected = new QrDetector(detectorMatrix).detect();
                 if (detected == null)
@@ -326,7 +388,7 @@ namespace ColorZXing
 
                 var dimension = detected.Bits.Width;
                 var transform = RecreateTransform(detected.Points, dimension);
-                var samples = SampleAllChannels(planes, bitmap.Width, bitmap.Height, transform, dimension);
+                var samples = SampleAllChannels(planes, width, height, transform, dimension);
                 if (samples == null)
                     return null;
 
@@ -349,6 +411,37 @@ namespace ColorZXing
             {
                 return null;
             }
+        }
+
+        private static byte[][] GetPlanesFromRgba(byte[] rgba, int width, int height)
+        {
+            if (rgba == null)
+                throw new ArgumentNullException(nameof(rgba));
+            if (width <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(height));
+            var length = checked(width * height);
+            if (rgba.Length != checked(length * 4))
+                throw new ArgumentException("RGBA data must contain exactly four bytes per pixel.", nameof(rgba));
+
+            var planes = new[] { new byte[length], new byte[length], new byte[length] };
+            for (var pixel = 0; pixel < length; pixel++)
+            {
+                var offset = pixel * 4;
+                planes[0][pixel] = rgba[offset + 2];
+                planes[1][pixel] = rgba[offset + 1];
+                planes[2][pixel] = rgba[offset];
+            }
+            return planes;
+        }
+
+        private static string DecodePlanesLegacy(byte[][] planes, int width, int height)
+        {
+            var first = ColorZXingBasic.Decode(planes[0], width, height, BitmapFormat.Gray8);
+            var second = ColorZXingBasic.Decode(planes[1], width, height, BitmapFormat.Gray8);
+            var third = ColorZXingBasic.Decode(planes[2], width, height, BitmapFormat.Gray8);
+            return first + second + third;
         }
 
         private static byte[][] SampleAllChannels(byte[][] planes, int width, int height, PerspectiveTransform transform, int dimension)

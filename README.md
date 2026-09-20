@@ -2,6 +2,8 @@
 
 [![NuGet](https://img.shields.io/nuget/v/ColorZXing.Net.svg)](https://www.nuget.org/packages/ColorZXing.Net/)
 
+**[Try the browser demo →](https://hainanzhao.github.io/ColorZXing.Net/)**
+
 Generate and decode color QR codes in C# using ZXing.Net. Choose a conventional
 black-and-white QR, custom foreground/background colors, or an RGB image
 carrying three independent QR payloads.
@@ -91,6 +93,19 @@ string fromUrl = ColorZXingRGB.Decode(new Uri("https://example.com/color-qr.png"
 The byte overloads above take encoded files such as PNG or JPEG, not raw RGB
 pixels. URL downloads are synchronous. Dispose bitmaps you create or receive
 from an encoder; decoding a caller-provided bitmap leaves it open.
+
+Browser, canvas, and other platform-neutral callers can use raw RGBA pixels
+without `System.Drawing`:
+
+```csharp
+ColorZXingPixelData image = ColorZXingRGB.EncodeRgba(text, 400, 400, 4);
+string decoded = ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height);
+```
+
+`ColorZXingBasic` exposes the same `EncodeRgba` and `DecodeRgba` methods. Pixel
+buffers are row-major with red, green, blue, and alpha bytes for each pixel.
+The [Blazor WebAssembly demo](https://hainanzhao.github.io/ColorZXing.Net/)
+uses these APIs directly in the browser.
 
 The shared RGB decoder falls back to independent channel decoding when it cannot
 decode all layers, including older symbols with different layer geometry. The

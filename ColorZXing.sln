@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ColorZXing", "ColorZXing\Co
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NUnitTest", "NUnitTest\NUnitTest.csproj", "{837939A4-E1AD-4DEC-92DB-C9E1D8F57061}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ColorZXing.Demo", "Demo\ColorZXing.Demo.csproj", "{E8A55F34-40BC-403A-8A48-4195C8FF1961}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{837939A4-E1AD-4DEC-92DB-C9E1D8F57061}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{837939A4-E1AD-4DEC-92DB-C9E1D8F57061}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{837939A4-E1AD-4DEC-92DB-C9E1D8F57061}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8A55F34-40BC-403A-8A48-4195C8FF1961}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8A55F34-40BC-403A-8A48-4195C8FF1961}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8A55F34-40BC-403A-8A48-4195C8FF1961}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8A55F34-40BC-403A-8A48-4195C8FF1961}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
