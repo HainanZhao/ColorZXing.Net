@@ -61,6 +61,7 @@ namespace ColorZXing
                     red[index] = Marshal.ReadByte(IntPtr.Add(imgIndex, 2));
                 }
             };
+            bitmap.UnlockBits(bmd);
         }
 
         public static Bitmap Encode(string value, int width, int height, int margin)
