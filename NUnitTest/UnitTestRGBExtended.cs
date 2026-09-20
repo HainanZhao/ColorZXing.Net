@@ -1,5 +1,6 @@
 using ColorZXing;
 using NUnit.Framework;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 
@@ -69,6 +70,40 @@ namespace NUnitTest
 
             var txtDecoded = ColorZXingRGB.Decode(bytes);
             Assert.AreEqual(TestUtils.TextShort, txtDecoded);
+        }
+
+        [TestCase("A😀界")]
+        [TestCase("ASCII and emoji 😀🚀 mixed with 中文 and café")]
+        public void TestUnicodeRoundTrip(string value)
+        {
+            using var bitmap = ColorZXingRGB.Encode(value, 400, 400, 4);
+            Assert.AreEqual(value, ColorZXingRGB.Decode(bitmap));
+        }
+
+        [Test]
+        public void TestRequiresThreeUnicodeScalars()
+        {
+            Assert.Throws<System.ArgumentException>(() => ColorZXingRGB.Encode("😀A", 200, 200, 4));
+        }
+
+        [Test]
+        public void TestSharedDecoderHandlesJpeg()
+        {
+            using var encoded = ColorZXingRGB.Encode(TestUtils.TextShort, 400, 400, 4);
+            using var stream = new MemoryStream();
+            encoded.Save(stream, ImageFormat.Jpeg);
+            using var decodedImage = ColorZXing.Utils.CreateBitmap(stream.ToArray());
+
+            Assert.AreEqual(TestUtils.TextShort, ColorZXingRGB.TryDecodeShared(decodedImage));
+        }
+
+        [Test]
+        public void TestSharedDecoderHandlesRotation()
+        {
+            using var encoded = ColorZXingRGB.Encode(TestUtils.TextShort, 400, 400, 4);
+            encoded.RotateFlip(RotateFlipType.Rotate90FlipNone);
+
+            Assert.AreEqual(TestUtils.TextShort, ColorZXingRGB.TryDecodeShared(encoded));
         }
     }
 }

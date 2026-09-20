@@ -1,15 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Net;
-using System.Text;
+using System.Net.Http;
 
 namespace ColorZXing
 {
     public class Utils
     {
+        private static readonly HttpClient HttpClient = new HttpClient();
+
         public static int GetGrayScale(int r, int g, int b)
         {
             return (r + g + b) / 3;
@@ -41,15 +41,15 @@ namespace ColorZXing
         public static Bitmap CreateBitmap(byte[] bytes)
         {
             using (var ms = new MemoryStream(bytes))
+            using (var source = new Bitmap(ms))
             {
-                return new Bitmap(ms);
+                return new Bitmap(source);
             }
         }
 
         public static Bitmap DownloadBitmap(Uri url)
         {
-            var webClient = new WebClient();
-            var bytes = webClient.DownloadData(url.AbsoluteUri);
+            var bytes = HttpClient.GetByteArrayAsync(url).GetAwaiter().GetResult();
             return CreateBitmap(bytes);
         }
     }
