@@ -182,10 +182,10 @@
     private ElementReference _fileInput;
     private const string ShortSample = "Color QR codes carry three synchronized payload layers — hello from .NET WebAssembly!";
     private static readonly string LongSample = BuildLongSample();
-    private string _payload = ShortSample;
-    private string _generateMode = "rgb";
+    private string _payload = LongSample;
+    private string _generateMode = "high";
     private string _decodeMode = "rgb";
-    private int _size = 400;
+    private int _size = 640;
     private int _margin = 4;
     private bool _busy;
     private bool _hasGenerated;
