@@ -42,17 +42,22 @@ public static class QrValidationBenchmarks
     private static void Add(List<QrTiming> rows, TextWriter output, string stage, string name, int layers,
         int iterations, Func<object> operation)
     {
-        _ = operation();
+        DisposeResult(operation());
         GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
         var before = GC.GetAllocatedBytesForCurrentThread();
         var watch = Stopwatch.StartNew();
-        object? result = null;
-        for (var i = 0; i < iterations; i++) result = operation();
+        for (var i = 0; i < iterations; i++)
+            DisposeResult(operation());
         watch.Stop();
         var timing = new QrTiming(stage, name, layers, watch.Elapsed.TotalMilliseconds / iterations,
             (GC.GetAllocatedBytesForCurrentThread() - before) / (double)iterations / 1024);
         rows.Add(timing);
         output.WriteLine($"QR {stage,-22} {name,-18} layers={layers} {timing.Milliseconds,8:F3} ms/op {timing.AllocatedKiB,8:F1} KiB/op");
-        if (result is QrBaselineImage image) image.Dispose();
+    }
+
+    private static void DisposeResult(object? result)
+    {
+        if (result is IDisposable disposable)
+            disposable.Dispose();
     }
 }

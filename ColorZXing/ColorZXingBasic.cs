@@ -59,7 +59,7 @@ namespace ColorZXing
         public static string Decode(byte[] bytes, int width, int height, BitmapFormat format)
         {
             var source = new RGBLuminanceSource(bytes, width, height, format);
-            var qrResult = DecodeQr(source);
+            var qrResult = DecodeQr(source, adaptive: false) ?? DecodeQr(source, adaptive: true);
             if (qrResult != null)
                 return qrResult;
 
@@ -85,12 +85,14 @@ namespace ColorZXing
             var length = checked(bitmap.Width * bitmap.Height);
             var luminance = new byte[length];
             GetBlueChannelFromBitmap(bitmap, luminance);
-            var result = DecodeQr(new ArrayLuminanceSource(luminance, bitmap.Width, bitmap.Height));
+            var source = new ArrayLuminanceSource(luminance, bitmap.Width, bitmap.Height);
+            var result = DecodeQr(source, adaptive: false) ?? DecodeQr(source, adaptive: true);
             if (result != null)
                 return result;
 
             GetLuminanceFromBitmap(bitmap, luminance, threshold: false);
-            return DecodeQr(new ArrayLuminanceSource(luminance, bitmap.Width, bitmap.Height));
+            source = new ArrayLuminanceSource(luminance, bitmap.Width, bitmap.Height);
+            return DecodeQr(source, adaptive: false) ?? DecodeQr(source, adaptive: true);
         }
 
         internal static string DecodeLegacy(Bitmap bitmap)
@@ -289,9 +291,11 @@ namespace ColorZXing
             target += 4;
         }
 
-        private static string DecodeQr(LuminanceSource source)
+        private static string DecodeQr(LuminanceSource source, bool adaptive)
         {
-            var bitmap = new BinaryBitmap(new HybridBinarizer(source));
+            var bitmap = new BinaryBitmap(adaptive
+                ? new HybridBinarizer(source)
+                : new GlobalHistogramBinarizer(source));
             return new QRCodeReader().decode(bitmap)?.Text;
         }
 

@@ -143,7 +143,7 @@ internal static class Program
         using var basicCurrent = ColorZXingBasic.Encode(expected, W, H, 4);
         benchmarkDecode("Basic decode v0 fixed + MultiFormat    ", basicLegacy, expected, ColorZXingBasic.DecodeLegacy);
         benchmarkDecode("Basic decode v1 QR fast path only      ", basicCurrent, expected, ColorZXingBasic.TryDecodeQr);
-        benchmarkDecode("Basic decode v1 adaptive + QR-only     ", basicCurrent, expected, ColorZXingBasic.Decode);
+        benchmarkDecode("Basic decode v1 fast + adaptive fallback", basicCurrent, expected, ColorZXingBasic.Decode);
         benchmarkEncode("Basic encode v0 full pixel buffer      ", expected, value => ColorZXingBasic.EncodeLegacy(value, W, H, 4), ColorZXingBasic.Decode);
         benchmarkEncode("Basic encode v1 direct bitmap render   ", expected, value => ColorZXingBasic.Encode(value, W, H, 4), ColorZXingBasic.Decode);
     }

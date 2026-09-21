@@ -433,9 +433,15 @@ namespace ColorZXing
 
         internal static string[] TryDecodeSharedLayers(byte[][] planes, int width, int height)
         {
+            return TryDecodeSharedLayers(planes, width, height, adaptive: false)
+                   ?? TryDecodeSharedLayers(planes, width, height, adaptive: true);
+        }
+
+        private static string[] TryDecodeSharedLayers(byte[][] planes, int width, int height, bool adaptive)
+        {
             try
             {
-                var samples = TrySampleChannels(planes, width, height, out var dimension);
+                var samples = TrySampleChannels(planes, width, height, out var dimension, adaptive);
                 if (samples == null)
                     return null;
 
@@ -462,13 +468,20 @@ namespace ColorZXing
 
         internal static byte[][] TrySampleChannels(byte[][] planes, int width, int height, out int dimension)
         {
+            return TrySampleChannels(planes, width, height, out dimension, adaptive: true);
+        }
+
+        private static byte[][] TrySampleChannels(byte[][] planes, int width, int height, out int dimension, bool adaptive)
+        {
             dimension = 0;
             if (planes == null || planes.Length == 0)
                 return null;
             try
             {
                 var source = new PlaneLuminanceSource(planes[0], width, height);
-                var detectorMatrix = new BinaryBitmap(new HybridBinarizer(source)).BlackMatrix;
+                var detectorMatrix = new BinaryBitmap(adaptive
+                    ? new HybridBinarizer(source)
+                    : new GlobalHistogramBinarizer(source)).BlackMatrix;
                 var detected = new QrDetector(detectorMatrix).detect();
                 if (detected == null)
                     return null;

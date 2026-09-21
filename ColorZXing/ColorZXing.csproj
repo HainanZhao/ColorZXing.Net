@@ -13,10 +13,10 @@
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes>Adds optional ColorZXingRGB compression overloads and the true ColorZXingHighDensity 64-color format, which multiplexes six QR layers across four calibrated intensity levels per RGB channel. Includes versioned framing, CRC-32 validation, Bitmap/RGBA APIs, browser demo integration, tests, and benchmarks.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds a QR validation and performance-gate harness, plus a fast global-histogram decode path with adaptive fallback for difficult images. Candidate managed-core ports are accepted only when they beat ZXing.Net by at least 10% without correctness regressions.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -98,7 +98,7 @@ public static class QrBaseline
            ?? throw new InvalidOperationException("QR detector found no symbol.");
 
     public static string DecodeSampled(BitMatrix sampled)
-        => new QrDecoder().decode(sampled, null)?.Text ?? string.Empty;
+        => new QrDecoder().decode((BitMatrix)sampled.Clone(), null)?.Text ?? string.Empty;
 
     private static string DecodeOne(Bitmap bitmap)
     {
