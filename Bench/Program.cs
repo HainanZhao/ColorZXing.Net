@@ -110,6 +110,27 @@ internal static class Program
         benchmarkEncode("Encode v1 prototype module renderer    ", expected, value => EncodeOnePass(value, W, H, 0));
         benchmarkEncode("Encode v2 optimized library            ", expected, value => ColorZXingRGB.Encode(value, W, H, 0));
 
+        using var compressedRgb = ColorZXingRGB.Encode(expected, W, H, 4, compressed: true);
+        var compressionInfo = ColorZXingRGB.AnalyzeCompression(expected);
+        var plainNative = ColorZXingRGB.EncodeRgba(expected, 0, 0, 4);
+        var compressedNative = ColorZXingRGB.EncodeRgba(expected, 0, 0, 4, compressed: true);
+        benchmarkDecode("Compressed RGB decode                  ", compressedRgb, expected,
+            bitmap => ColorZXingRGB.Decode(bitmap, compressed: true));
+        benchmarkEncode("Compressed RGB encode                  ", expected,
+            value => ColorZXingRGB.Encode(value, W, H, 4, compressed: true),
+            bitmap => ColorZXingRGB.Decode(bitmap, compressed: true));
+        Console.WriteLine($"Compressed RGB payload: {compressionInfo.OriginalBytes} -> {compressionInfo.StoredBytes} bytes " +
+                          $"({compressionInfo.SavingsPercent:F1}% saved), native symbol {plainNative.Width} -> {compressedNative.Width} modules/pixels");
+
+        using var spectrum = ColorZXingHighDensity.Encode(expected, W, H, 4);
+        benchmarkDecode("64-color decode                        ", spectrum, expected, ColorZXingHighDensity.Decode);
+        benchmarkEncode("64-color encode                        ", expected,
+            value => ColorZXingHighDensity.Encode(value, W, H, 4), ColorZXingHighDensity.Decode);
+        var randomPayload = RandomString(payloadLength);
+        var randomRgb = ColorZXingRGB.EncodeRgba(randomPayload, 0, 0, 4);
+        var randomSpectrum = ColorZXingHighDensity.EncodeRgba(randomPayload, 0, 0, 4);
+        Console.WriteLine($"64-color native random symbol: {randomRgb.Width} -> {randomSpectrum.Width} modules/pixels");
+
         using var basicLegacy = ColorZXingBasic.EncodeLegacy(expected, W, H, 4);
         using var basicCurrent = ColorZXingBasic.Encode(expected, W, H, 4);
         benchmarkDecode("Basic decode v0 fixed + MultiFormat    ", basicLegacy, expected, ColorZXingBasic.DecodeLegacy);
@@ -442,6 +463,15 @@ internal static class Program
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < len; i++) sb.Append((char)('A' + i % 26));
         return sb.ToString();
+    }
+
+    private static string RandomString(int length)
+    {
+        const string alphabet = "abcdefghijklmnopqrstuvwxyz0123456789-_:/.";
+        var random = new Random(73);
+        var chars = new char[length];
+        for (var i = 0; i < chars.Length; i++) chars[i] = alphabet[random.Next(alphabet.Length)];
+        return new string(chars);
     }
 
     private static void RowCopyRGB(Bitmap bitmap, byte[] blue, byte[] green, byte[] red)

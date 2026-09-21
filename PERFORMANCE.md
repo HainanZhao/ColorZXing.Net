@@ -63,6 +63,69 @@ COLORZXING_BENCH_LENGTH=1200 dotnet run --project Bench/Bench.csproj -c Release
 The benchmark keeps the legacy paths internally so the comparison covers the
 same process, runtime, image, and payload.
 
+## Optional RGB compression
+
+The existing RGB symbol has eight possible module colors, so its physical
+alphabet carries exactly `log2(8) = 3` bits per module before QR structure and
+error correction. A lossless format cannot exceed that bound for arbitrary
+input without adding more reliably distinguishable colors or changing the
+module grid.
+
+`ColorZXingRGB` can instead reduce the number of input bits when callers pass
+`compressed: true`. It applies a managed LZ block codec to UTF-8 data and keeps it only
+when it is smaller. A versioned 18-byte frame records compression flags,
+original and stored lengths, and CRC-32; two marker bytes on each color layer
+identify channel order and force binary QR encoding. Each layer still receives
+normal QR Reed-Solomon protection and the rendered symbol still uses the same
+eight RGB colors.
+
+This is most effective for JSON, XML, logs, repeated prose, and other structured
+content. Encrypted, pre-compressed, and random-looking text uses raw storage and pays the
+24-byte frame/layer overhead. The compressed wire format is deliberately
+separate and requires the same flag on `ColorZXingRGB.Decode`.
+
+In one Release run of the benchmark's repeated 1,200-character payload, the
+codec stored 68 bytes, saved 92.3% after framing/layer markers, and reduced the
+native symbol from 69 to 33 modules/pixels per side. It encoded in 2.350 ms and
+decoded in 2.020 ms. This illustrates a highly compressible workload rather
+than a universal capacity multiplier; the Bench project prints current results.
+
+## Six-layer spectrum muxing
+
+`ColorZXingHighDensity` raises the physical alphabet from 8 to 64 colors by
+multiplexing two binary QR layers into each component. For a channel's low and
+high bitplanes, the rendered value is
+
+```text
+intensity = 85 * low + 170 * high
+```
+
+which produces the uniform levels `0`, `85`, `170`, and `255`. Uniform spacing
+maximizes the minimum one-dimensional decision margin: an ideal sample can move
+up to 42 intensity units before crossing a threshold. Across RGB this carries
+six raw bits per module, twice the three-layer format's physical payload.
+
+During decoding, the 2nd and 98th percentile module samples estimate black and
+white separately for each channel. A sample `x` is normalized as
+
+```text
+normalized = clamp((x - black) * 255 / (white - black), 0, 255)
+level = round(normalized / 85)
+```
+
+The two bits are recovered from `level`, then six ordinary QR decoders apply
+their own Reed-Solomon correction. Tests cover per-channel black offsets,
+unequal white levels, ±7 intensity noise, rotation, and JPEG at a large module
+scale. The smaller 42-unit margin makes this mode more capture-sensitive than
+binary-channel RGB, so increased capacity is not free.
+
+For a deterministic, poorly compressible 1,200-character payload, one Release
+run reduced the native symbol from 77 to 61 modules/pixels per side. The full
+six-layer pipeline encoded the benchmark payload in 3.275 ms and decoded it in
+2.389 ms. At the maximum QR version, the raw layer capacity approaches twice
+that of the three-layer format; QR headers, framing, version steps, and error
+correction make the realized gain payload-dependent.
+
 ## Why the GPU is not the first optimization
 
 After geometry is known, only `3 * N^2` component samples are needed; typical QR
@@ -72,12 +135,6 @@ GPU preprocessing becomes attractive for batches or video only when frames are
 already GPU-resident. In that case color correction, thresholding, finder
 detection, and perspective sampling should remain on the GPU, with only the
 module matrices transferred to the CPU decoders.
-
-An alternative custom color-code format could treat each module as a three-bit
-symbol and use one new error-correction stream. That would no longer contain
-three standards-compatible QR symbols and would require a new capacity table,
-mask scoring rules, error model, and decoder. It is a separate format design,
-not a safe optimization of this one.
 
 ## Conventional QR fast path
 

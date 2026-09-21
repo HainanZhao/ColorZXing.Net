@@ -34,14 +34,16 @@
                 </div>
 
                 <label for="payload">Payload</label>
-                <textarea id="payload" @bind="_payload" maxlength="2400" spellcheck="false"></textarea>
-                <div class="field-meta"><span>@_payload.Length characters</span><span>UTF-8</span></div>
+                <textarea id="payload" @bind="_payload" maxlength="16000" spellcheck="false"></textarea>
+                <div class="field-meta"><span>@_payload.Length / 16,000 characters</span><span>UTF-8</span></div>
 
                 <div class="control-grid">
                     <div>
                         <label for="mode">Symbol</label>
                         <select id="mode" @bind="_generateMode">
                             <option value="rgb">RGB · 3 channels</option>
+                            <option value="compressed">RGB · compressed</option>
+                            <option value="high">High density · 64 colors</option>
                             <option value="basic">Black &amp; white</option>
                         </select>
                     </div>
@@ -86,6 +88,10 @@
                     <div>
                         <strong>@(_hasGenerated ? $"{_generatedWidth} × {_generatedHeight}" : "Awaiting input")</strong>
                         <span>@(_hasGenerated ? $"Generated in {_generateMs:F1} ms" : "Choose settings and generate")</span>
+                        @if (_compressionInfo is not null)
+                        {
+                            <span>@_compressionInfo.OriginalBytes → @_compressionInfo.StoredBytes bytes · @_compressionInfo.CompressionSavingsPercent.ToString("F1")% compressed</span>
+                        }
                         @if (_roundTripOk is not null)
                         {
                             <span class="@(_roundTripOk == true ? "verified" : "verification-failed")">
@@ -116,6 +122,8 @@
                         <label for="decode-mode">Decoder</label>
                         <select id="decode-mode" @bind="_decodeMode">
                             <option value="rgb">RGB · 3 channels</option>
+                            <option value="compressed">RGB · compressed</option>
+                            <option value="high">High density · 64 colors</option>
                             <option value="basic">Black &amp; white</option>
                         </select>
                     </div>
@@ -179,6 +187,7 @@
     private double _generateMs;
     private double _verifyMs;
     private bool? _roundTripOk;
+    private ColorZXingCompressionInfo? _compressionInfo;
     private string? _generateError;
     private bool _decoding;
     private string? _decodedText;
@@ -203,16 +212,35 @@
         try
         {
             var stopwatch = Stopwatch.StartNew();
-            var image = _generateMode == "rgb"
-                ? ColorZXingRGB.EncodeRgba(_payload, _size, _size, _margin)
-                : ColorZXingBasic.EncodeRgba(_payload, _size, _size, _margin);
+            ColorZXingPixelData image;
+            if (_generateMode == "high")
+            {
+                image = ColorZXingHighDensity.EncodeRgba(
+                    _payload, _size, _size, _margin, out _compressionInfo);
+            }
+            else if (_generateMode == "compressed")
+            {
+                _compressionInfo = ColorZXingRGB.AnalyzeCompression(_payload);
+                image = ColorZXingRGB.EncodeRgba(_payload, _size, _size, _margin, compressed: true);
+            }
+            else
+            {
+                _compressionInfo = null;
+                image = _generateMode == "rgb"
+                    ? ColorZXingRGB.EncodeRgba(_payload, _size, _size, _margin)
+                    : ColorZXingBasic.EncodeRgba(_payload, _size, _size, _margin);
+            }
             stopwatch.Stop();
 
             await _module.InvokeVoidAsync("drawPixels", _generatedCanvas, image.Width, image.Height, image.Pixels);
             var verifyStopwatch = Stopwatch.StartNew();
-            var verifiedText = _generateMode == "rgb"
-                ? ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height)
-                : ColorZXingBasic.DecodeRgba(image.Pixels, image.Width, image.Height);
+            var verifiedText = _generateMode switch
+            {
+                "compressed" => ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height, compressed: true),
+                "high" => ColorZXingHighDensity.DecodeRgba(image.Pixels, image.Width, image.Height),
+                "rgb" => ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height),
+                _ => ColorZXingBasic.DecodeRgba(image.Pixels, image.Width, image.Height)
+            };
             verifyStopwatch.Stop();
             _generatedWidth = image.Width;
             _generatedHeight = image.Height;
@@ -246,9 +274,13 @@
             _uploadInfo = await _module.InvokeAsync<UploadInfo>("loadSelectedImage", _fileInput, _uploadCanvas, 1400, 12 * 1024 * 1024);
             var pixels = await _module.InvokeAsync<byte[]>("readPixels", _uploadCanvas);
             var stopwatch = Stopwatch.StartNew();
-            _decodedText = _decodeMode == "rgb"
-                ? ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height)
-                : ColorZXingBasic.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height);
+            _decodedText = _decodeMode switch
+            {
+                "compressed" => ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height, compressed: true),
+                "high" => ColorZXingHighDensity.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height),
+                "rgb" => ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height),
+                _ => ColorZXingBasic.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height)
+            };
             stopwatch.Stop();
             _decodeMs = stopwatch.Elapsed.TotalMilliseconds;
             if (string.IsNullOrEmpty(_decodedText))

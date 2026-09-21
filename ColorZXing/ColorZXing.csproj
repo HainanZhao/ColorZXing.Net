@@ -13,10 +13,10 @@
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.3.2</Version>
+    <Version>0.4.0</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes>Adds platform-neutral RGBA encode/decode APIs for browser and canvas callers, plus a Blazor WebAssembly demo with client-side generation, round-trip verification, image upload, and decoding.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds optional ColorZXingRGB compression overloads and the true ColorZXingHighDensity 64-color format, which multiplexes six QR layers across four calibrated intensity levels per RGB channel. Includes versioned framing, CRC-32 validation, Bitmap/RGBA APIs, browser demo integration, tests, and benchmarks.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

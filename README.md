@@ -44,6 +44,33 @@ The demo runs the real ColorZXing.Net engine in .NET WebAssembly. Generate an RG
 
 Each color plane remains a regular QR symbol with its own error correction. Together, the planes can carry up to roughly three times the payload of a comparable black-and-white symbol under ideal conditions.
 
+## Need even more room?
+
+Set `compressed: true` to add lossless managed LZ compression and a checksum-protected binary frame before the same three RGB layers are created. It uses the same eight colors and the same QR error correction, so the extra capacity does not depend on adding harder-to-distinguish color shades.
+
+```csharp
+var info = ColorZXingRGB.AnalyzeCompression(largeJson);
+using var qr = ColorZXingRGB.Encode(largeJson, 400, 400, 4, compressed: true);
+string decoded = ColorZXingRGB.Decode(qr, compressed: true);
+```
+
+Repeated text, JSON, XML, and structured records can shrink dramatically; encrypted, compressed, or random data usually cannot. When compression does not help, the format stores the UTF-8 bytes unchanged. The same flag is available on the RGBA methods used in browsers.
+
+Compressed symbols use a separate wire format, so pass `compressed: true` while decoding them. The versioned frame validates layer order, payload length, and CRC-32 before returning data.
+
+## True 6-bit spectrum muxing
+
+`ColorZXingHighDensity` multiplexes **six** binary QR layers—two in each red, green, and blue channel. Every channel uses four evenly spaced intensity levels (`0`, `85`, `170`, `255`), producing a 64-color alphabet and six raw bits per module instead of three.
+
+```csharp
+using var qr = ColorZXingHighDensity.Encode(largeMessage, 600, 600, 4);
+string decoded = ColorZXingHighDensity.Decode(qr);
+```
+
+The decoder estimates black and white references independently for each channel, normalizes channel gain and white balance, then maps samples to the nearest intensity level. The payload is also compressed when that helps, so structured text can gain from both spectrum muxing and fewer input bytes.
+
+This mode offers roughly twice the raw channel capacity of regular RGB, but four intensity levels leave less noise margin than two. Use a generous module size, lossless PNG when possible, and test the actual camera, display, printer, and lighting path. High-density symbols require `ColorZXingHighDensity.Decode`.
+
 ## Start in seconds
 
 ```sh
