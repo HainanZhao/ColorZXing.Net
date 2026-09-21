@@ -36,6 +36,11 @@
                 <label for="payload">Payload</label>
                 <textarea id="payload" @bind="_payload" maxlength="16000" spellcheck="false"></textarea>
                 <div class="field-meta"><span>@_payload.Length / 16,000 characters</span><span>UTF-8</span></div>
+                <div class="sample-presets" aria-label="Sample payloads">
+                    <span>Load sample</span>
+                    <button type="button" @onclick="LoadShortSample" disabled="@_busy">Short message</button>
+                    <button type="button" @onclick="LoadLongSample" disabled="@_busy">Long JSON · @LongSample.Length chars</button>
+                </div>
 
                 <div class="control-grid">
                     <div>
@@ -175,7 +180,9 @@
     private ElementReference _generatedCanvas;
     private ElementReference _uploadCanvas;
     private ElementReference _fileInput;
-    private string _payload = "Color QR codes carry three synchronized payload layers — hello from .NET WebAssembly!";
+    private const string ShortSample = "Color QR codes carry three synchronized payload layers — hello from .NET WebAssembly!";
+    private static readonly string LongSample = BuildLongSample();
+    private string _payload = ShortSample;
     private string _generateMode = "rgb";
     private string _decodeMode = "rgb";
     private int _size = 400;
@@ -200,6 +207,37 @@
         if (!firstRender) return;
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/canvas.js");
         await GenerateAsync();
+    }
+
+    private void LoadShortSample()
+    {
+        _payload = ShortSample;
+        _generateMode = "rgb";
+        _size = 400;
+    }
+
+    private void LoadLongSample()
+    {
+        _payload = LongSample;
+        _generateMode = "high";
+        _size = 640;
+    }
+
+    private static string BuildLongSample()
+    {
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine("{\n  \"schema\": \"colorzxing.telemetry.v1\",\n  \"region\": \"asia-east\",\n  \"records\": [");
+        for (var index = 1; index <= 72; index++)
+        {
+            builder.Append("    { \"sequence\": ").Append(index)
+                .Append(", \"device\": \"sensor-").Append(index.ToString("D3"))
+                .Append("\", \"status\": \"ready\", \"temperature\": ")
+                .Append(20 + index % 9).Append('.').Append(index % 10)
+                .Append(", \"tags\": [\"rgb\", \"wasm\", \"中文\"], \"message\": \"Repeated structured data compresses especially well 🚀\" }")
+                .AppendLine(index == 72 ? string.Empty : ",");
+        }
+        builder.AppendLine("  ]\n}");
+        return builder.ToString();
     }
 
     private async Task GenerateAsync()
