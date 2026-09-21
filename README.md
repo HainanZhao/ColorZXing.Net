@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/HainanZhao/ColorZXing.Net/master/Images/icon.jpg" width="132" alt="ColorZXing.Net RGB QR code" />
+  <img src="https://raw.githubusercontent.com/HainanZhao/ColorZXing.Net/master/Images/colorzxing-zebra.svg" width="160" alt="ColorZXing.Net colorful zebra logo" />
 </p>
 
 <h1 align="center">Three QR codes. One spectrum.</h1>

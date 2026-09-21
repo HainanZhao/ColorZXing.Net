@@ -2,14 +2,13 @@
 .masthead { height: 88px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { display: flex; gap: 12px; align-items: center; color: var(--ink); text-decoration: none; font: 700 20px/1 var(--sans); letter-spacing: -.04em; }
 .brand .muted { color: var(--muted); font-weight: 500; }
-.brand-mark { width: 25px; height: 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; transform: rotate(45deg); }
-.brand-mark i { display: block; border-radius: 2px; background: var(--blue); }
-.brand-mark i:nth-child(2) { background: var(--red); }.brand-mark i:nth-child(3) { background: var(--green); grid-column: span 2; }
+.brand-logo { width:42px; height:42px; object-fit:contain; filter:drop-shadow(0 5px 12px #0008); }
 nav { display: flex; gap: 28px; } nav a { color: var(--muted); font-size: 14px; text-decoration: none; } nav a:hover { color: var(--ink); }
 .hero { padding: 90px 0 76px; max-width: 920px; }
 .eyebrow { display: flex; gap: 10px; align-items: center; color: var(--muted); font: 600 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .13em; }
 .eyebrow span { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 18px var(--green); }
 h1 { margin: 25px 0 26px; max-width: 850px; color: var(--ink); font: 520 clamp(58px, 8vw, 106px)/.92 var(--display); letter-spacing: -.07em; }
+h1:focus { outline:none; }
 h1 em { color: transparent; font-style: normal; -webkit-text-stroke: 1.5px var(--muted); }
 .hero > p { max-width: 675px; margin: 0; color: var(--muted); font-size: 18px; line-height: 1.65; }
 .tech-row { display: flex; gap: 10px; margin-top: 34px; }.tech-row span { padding: 8px 12px; border: 1px solid var(--line); border-radius: 100px; color: var(--faint); font: 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; }

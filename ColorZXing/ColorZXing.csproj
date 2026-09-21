@@ -8,19 +8,19 @@
     <Product>ColorZXing.Net</Product>
     <Company></Company>
     <Description>A colorful QR generator and decoder based on ZXing.Net. You can generate QR code using all RGB channels or only Monotone colors.</Description>
-    <PackageIcon>icon.jpg</PackageIcon>
+    <PackageIcon>colorzxing-zebra.png</PackageIcon>
     <PackageProjectUrl>https://github.com/HainanZhao/ColorZXing.Net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.4.1</Version>
+    <Version>0.4.2</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes>Adds a QR validation and performance-gate harness, plus a fast global-histogram decode path with adaptive fallback for difficult images. Candidate managed-core ports are accepted only when they beat ZXing.Net by at least 10% without correctness regressions.</PackageReleaseNotes>
+    <PackageReleaseNotes>Introduces the new colorful zebra brand mark for the NuGet package and browser demo, and adds short and long high-density demo payload presets.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\Images\icon.jpg" Pack="True" PackagePath="" />
+    <None Include="..\Images\colorzxing-zebra.png" Pack="True" PackagePath="" />
     <None Include="..\README.md" Pack="True" PackagePath="" />
     <None Include="..\PERFORMANCE.md" Pack="True" PackagePath="" />
   </ItemGroup>
