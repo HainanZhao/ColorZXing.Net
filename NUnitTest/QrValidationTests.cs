@@ -78,7 +78,10 @@ public sealed class ManagedQrCoreAdapterTests
         var adapter = new ReflectionManagedQrCoreAdapter();
         if (!adapter.IsAvailable) Assert.Ignore("Managed core reflection adapter is not configured.");
         using var image = QrBaseline.Encode(QrDatasets.Model2[0]);
-        Assert.That(adapter.TryDecode(image.Bitmap, out var result), Is.True);
+        var luminance = QrBaseline.Preprocess(image.Bitmap);
+        var sampled = QrBaseline.DetectAndSample(QrBaseline.Binarize(luminance, image.Bitmap.Width, image.Bitmap.Height));
+        var decoded = adapter.TryDecodeSampled(sampled, out var result) || adapter.TryDecode(image.Bitmap, out result);
+        Assert.That(decoded, Is.True);
         Assert.That(result, Is.EqualTo(QrDatasets.Model2[0].Payload));
     }
 }

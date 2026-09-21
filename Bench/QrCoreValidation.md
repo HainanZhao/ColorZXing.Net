@@ -2,10 +2,11 @@
 
 The harness in `QrValidation` uses ZXing.Net **0.16.11 only** as the correctness
 oracle. It deliberately has no compile-time dependency on the new managed QR
-core. Set `COLORZXING_QR_CORE_TYPE` to an assembly-qualified adapter type when
-the core exposes a stable `static string Decode(Bitmap)` and
-`static object Encode(string)` surface; the explicit NUnit test and benchmark
-can then be enabled without changing this branch.
+core. Set `COLORZXING_QR_CORE_TYPE` to an assembly-qualified adapter type. The
+reflection adapter prefers a decoder taking `ZXing.Common.BitMatrix`, then a
+row-major `byte[]` plus width/height, so the new core can be validated after
+detection/sampling without requiring a `Bitmap` API. `Decode(Bitmap)` and
+`Encode(string)` remain optional compatibility paths.
 
 ## Correctness matrix
 
@@ -23,11 +24,12 @@ can then be enabled without changing this branch.
 
 Run `COLORZXING_QR_VALIDATION_ONLY=1 dotnet run -c Release --project Bench`.
 The command reports preprocessing, detection/sampling, sampled-module decode,
-encoding, allocation, and end-to-end timings separately. A candidate passes when
-the median of five warm runs is no more than **1.25x ZXing baseline** for each
-stage, allocations are no more than **1.50x baseline**, and all correctness
-cases pass. End-to-end 1/3/6-layer timings are compared at each layer count,
-not only by their total.
+encoding, allocation, and end-to-end timings separately. For every targeted
+stage and each 1/3/6-layer workload, a candidate must be at least **10% faster
+than the ZXing.Net baseline** (median candidate/baseline ratio **<= 0.90x**),
+with allocations **<= 1.0x** baseline. All correctness cases must pass with no
+regressions. Compare medians from five warm runs; do not use a single noisy
+iteration or hide a slower stage behind an aggregate total.
 
 The acceptance anchors recorded from the current host are approximately:
 
