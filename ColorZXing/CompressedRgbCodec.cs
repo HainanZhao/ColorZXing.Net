@@ -232,13 +232,18 @@ namespace ColorZXing
 
         internal static byte[] CreateFrame(byte[] value, out ColorZXingCompressionInfo info)
         {
+            return CreateFrame(value, allowCompression: true, out info);
+        }
+
+        internal static byte[] CreateFrame(byte[] value, bool allowCompression, out ColorZXingCompressionInfo info)
+        {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
             if (value.Length > MaximumDecodedBytes)
                 throw new ArgumentException($"Compressed RGB payloads cannot exceed {MaximumDecodedBytes} bytes.", nameof(value));
 
-            var compressed = Compress(value);
-            var useCompression = compressed.Length < value.Length;
+            var compressed = allowCompression ? Compress(value) : Array.Empty<byte>();
+            var useCompression = allowCompression && compressed.Length < value.Length;
             var payload = useCompression ? compressed : value;
             var frame = new byte[checked(FrameHeaderSize + payload.Length)];
             FrameMagic.CopyTo(frame, 0);

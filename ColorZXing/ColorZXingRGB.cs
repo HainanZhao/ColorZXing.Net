@@ -468,17 +468,24 @@ namespace ColorZXing
 
         internal static byte[][] TrySampleChannels(byte[][] planes, int width, int height, out int dimension)
         {
-            return TrySampleChannels(planes, width, height, out dimension, adaptive: true);
+            return TrySampleChannels(planes, width, height, out dimension, adaptive: true, detectorPlane: 0);
         }
 
-        private static byte[][] TrySampleChannels(byte[][] planes, int width, int height, out int dimension, bool adaptive)
+        internal static byte[][] TrySampleChannels(byte[][] planes, int width, int height, out int dimension,
+            int detectorPlane)
+        {
+            return TrySampleChannels(planes, width, height, out dimension, adaptive: true, detectorPlane);
+        }
+
+        private static byte[][] TrySampleChannels(byte[][] planes, int width, int height, out int dimension,
+            bool adaptive, int detectorPlane = 0)
         {
             dimension = 0;
             if (planes == null || planes.Length == 0)
                 return null;
             try
             {
-                var source = new PlaneLuminanceSource(planes[0], width, height);
+                var source = new PlaneLuminanceSource(planes[detectorPlane], width, height);
                 var detectorMatrix = new BinaryBitmap(adaptive
                     ? new HybridBinarizer(source)
                     : new GlobalHistogramBinarizer(source)).BlackMatrix;

@@ -13,10 +13,10 @@
     <RepositoryUrl>https://github.com/HainanZhao/ColorZXing.Net</RepositoryUrl>
     <PackageTags>Color QR Code</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes>Introduces the new colorful zebra brand mark for the NuGet package and browser demo, and adds short and long high-density demo payload presets.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds explicit compressed/uncompressed ColorZXingHighDensity overloads and separate demo selections, with a fair long JSON sample sized to fit every QR mode.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

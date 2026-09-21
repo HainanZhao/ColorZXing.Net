@@ -31,7 +31,18 @@ namespace ColorZXing
         public static Bitmap Encode(string value, int width, int height, int margin,
             out ColorZXingCompressionInfo compression)
         {
-            var codes = EncodeLayers(CreateFrame(value, out compression));
+            return Encode(value, width, height, margin, compressed: true, out compression);
+        }
+
+        public static Bitmap Encode(string value, int width, int height, int margin, bool compressed)
+        {
+            return Encode(value, width, height, margin, compressed, out _);
+        }
+
+        public static Bitmap Encode(string value, int width, int height, int margin, bool compressed,
+            out ColorZXingCompressionInfo compression)
+        {
+            var codes = EncodeLayers(CreateFrame(value, compressed, out compression));
             return RenderBitmap(codes, width, height, margin);
         }
 
@@ -43,7 +54,18 @@ namespace ColorZXing
         public static ColorZXingPixelData EncodeRgba(string value, int width, int height, int margin,
             out ColorZXingCompressionInfo compression)
         {
-            var codes = EncodeLayers(CreateFrame(value, out compression));
+            return EncodeRgba(value, width, height, margin, compressed: true, out compression);
+        }
+
+        public static ColorZXingPixelData EncodeRgba(string value, int width, int height, int margin, bool compressed)
+        {
+            return EncodeRgba(value, width, height, margin, compressed, out _);
+        }
+
+        public static ColorZXingPixelData EncodeRgba(string value, int width, int height, int margin, bool compressed,
+            out ColorZXingCompressionInfo compression)
+        {
+            var codes = EncodeLayers(CreateFrame(value, compressed, out compression));
             return RenderRgba(codes, width, height, margin);
         }
 
@@ -103,11 +125,11 @@ namespace ColorZXing
             }
         }
 
-        private static byte[] CreateFrame(string value, out ColorZXingCompressionInfo compression)
+        private static byte[] CreateFrame(string value, bool compressed, out ColorZXingCompressionInfo compression)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-            return CompressedRgbCodec.CreateFrame(Encoding.UTF8.GetBytes(value), out compression);
+            return CompressedRgbCodec.CreateFrame(Encoding.UTF8.GetBytes(value), compressed, out compression);
         }
 
         private static QRCode[] EncodeLayers(byte[] frame)
@@ -240,19 +262,36 @@ namespace ColorZXing
             top = (outputHeight - dimension * multiple) / 2;
         }
 
-        private static string DecodePlanes(byte[][] planes, int width, int height)
+        internal static string DecodePlanes(byte[][] planes, int width, int height)
         {
-            var samples = ColorZXingRGB.TrySampleChannels(planes, width, height, out var dimension);
-            if (samples == null)
-                throw new InvalidDataException("High-density RGB geometry could not be detected.");
+            InvalidDataException lastError = null;
+            for (var detectorPlane = 0; detectorPlane < 3; detectorPlane++)
+            {
+                var samples = ColorZXingRGB.TrySampleChannels(
+                    planes, width, height, out var dimension, detectorPlane);
+                if (samples == null)
+                    continue;
+                try
+                {
+                    return DecodeSamples(samples, dimension);
+                }
+                catch (InvalidDataException exception)
+                {
+                    lastError = exception;
+                }
+            }
+            throw lastError ?? new InvalidDataException("High-density RGB geometry could not be detected.");
+        }
 
+        private static string DecodeSamples(byte[][] samples, int dimension)
+        {
             var matrices = new BitMatrix[LayerCount];
             for (var layer = 0; layer < matrices.Length; layer++)
                 matrices[layer] = new BitMatrix(dimension);
 
-            DecodeChannel(samples[2], dimension, matrices[0], matrices[1]);
-            DecodeChannel(samples[1], dimension, matrices[2], matrices[3]);
-            DecodeChannel(samples[0], dimension, matrices[4], matrices[5]);
+            var redCalibration = DecodeChannel(samples[2], dimension, matrices[0], matrices[1]);
+            var greenCalibration = DecodeChannel(samples[1], dimension, matrices[2], matrices[3]);
+            var blueCalibration = DecodeChannel(samples[0], dimension, matrices[4], matrices[5]);
 
             var layerTexts = new string[LayerCount];
             Parallel.For(0, matrices.Length, layer =>
@@ -260,18 +299,20 @@ namespace ColorZXing
                 layerTexts[layer] = new QrDecoder().decode(matrices[layer], null)?.Text;
             });
             if (layerTexts.Any(string.IsNullOrEmpty))
-                throw new InvalidDataException("One or more high-density RGB layers could not be decoded.");
+                throw new InvalidDataException($"High-density RGB layers ({dimension} modules; " +
+                    $"R={redCalibration.Black}/{redCalibration.White}, " +
+                    $"G={greenCalibration.Black}/{greenCalibration.White}, " +
+                    $"B={blueCalibration.Black}/{blueCalibration.White}) could not be decoded: " +
+                    string.Join(", ", layerTexts.Select((text, index) => string.IsNullOrEmpty(text) ? index.ToString() : null)
+                        .Where(index => index != null)));
 
             var bytes = CompressedRgbCodec.DecodeLayerTexts(layerTexts, FormatMarker);
             return new UTF8Encoding(false, true).GetString(bytes);
         }
 
-        private static void DecodeChannel(byte[] samples, int dimension, BitMatrix lowLayer, BitMatrix highLayer)
+        private static (int Black, int White) DecodeChannel(byte[] samples, int dimension, BitMatrix lowLayer, BitMatrix highLayer)
         {
-            var sorted = (byte[])samples.Clone();
-            Array.Sort(sorted);
-            var black = sorted[Math.Max(0, sorted.Length / 50)];
-            var white = sorted[Math.Min(sorted.Length - 1, sorted.Length - 1 - sorted.Length / 50)];
+            EstimateFinderReferences(samples, dimension, out var black, out var white);
             if (white - black < 90)
                 throw new InvalidDataException("A color channel has insufficient calibrated contrast.");
 
@@ -286,6 +327,36 @@ namespace ColorZXing
                         lowLayer[x, y] = true;
                     if ((level & 2) == 0)
                         highLayer[x, y] = true;
+                }
+            }
+            return (black, white);
+        }
+
+        private static void EstimateFinderReferences(byte[] samples, int dimension, out int black, out int white)
+        {
+            var blackSamples = new List<byte>(99);
+            var whiteSamples = new List<byte>(48);
+            AddFinder(0, 0);
+            AddFinder(dimension - 7, 0);
+            AddFinder(0, dimension - 7);
+
+            blackSamples.Sort();
+            whiteSamples.Sort();
+            black = blackSamples[blackSamples.Count / 2];
+            white = whiteSamples[whiteSamples.Count / 2];
+            return;
+
+            void AddFinder(int originX, int originY)
+            {
+                for (var y = 0; y < 7; y++)
+                {
+                    for (var x = 0; x < 7; x++)
+                    {
+                        var isBlack = x == 0 || x == 6 || y == 0 || y == 6 ||
+                                      x >= 2 && x <= 4 && y >= 2 && y <= 4;
+                        var value = samples[(originY + y) * dimension + originX + x];
+                        (isBlack ? blackSamples : whiteSamples).Add(value);
+                    }
                 }
             }
         }

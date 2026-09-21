@@ -48,7 +48,8 @@
                         <select id="mode" @bind="_generateMode">
                             <option value="rgb">RGB · 3 channels</option>
                             <option value="compressed">RGB · compressed</option>
-                            <option value="high">64 colors + compression</option>
+                            <option value="high">High density · 64 colors</option>
+                            <option value="high-compressed">64 colors + compression</option>
                             <option value="basic">Black &amp; white</option>
                         </select>
                     </div>
@@ -126,9 +127,10 @@
                     <div class="decode-mode">
                         <label for="decode-mode">Decoder</label>
                         <select id="decode-mode" @bind="_decodeMode">
+                            <option value="auto">Auto detect</option>
                             <option value="rgb">RGB · 3 channels</option>
                             <option value="compressed">RGB · compressed</option>
-                            <option value="high">64 colors + compression</option>
+                            <option value="high">High density · 64 colors</option>
                             <option value="basic">Black &amp; white</option>
                         </select>
                     </div>
@@ -155,7 +157,7 @@
                     else if (!string.IsNullOrEmpty(_decodedText))
                     {
                         <pre>@_decodedText</pre>
-                        <div class="decode-meta">@_uploadInfo?.Name · @_uploadInfo?.Width × @_uploadInfo?.Height · @_decodeMs.ToString("F1") ms</div>
+                        <div class="decode-meta">@_uploadInfo?.Name · @_uploadInfo?.Width × @_uploadInfo?.Height · @_detectedFormat · @_decodeMs.ToString("F1") ms</div>
                     }
                     else
                     {
@@ -184,7 +186,7 @@
     private static readonly string LongSample = BuildLongSample();
     private string _payload = LongSample;
     private string _generateMode = "high";
-    private string _decodeMode = "rgb";
+    private string _decodeMode = "auto";
     private int _size = 640;
     private int _margin = 4;
     private bool _busy;
@@ -200,6 +202,7 @@
     private string? _decodedText;
     private string? _decodeError;
     private double _decodeMs;
+    private string? _detectedFormat;
     private UploadInfo? _uploadInfo;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -227,14 +230,15 @@
     {
         var builder = new System.Text.StringBuilder();
         builder.AppendLine("{\n  \"schema\": \"colorzxing.telemetry.v1\",\n  \"region\": \"asia-east\",\n  \"records\": [");
-        for (var index = 1; index <= 72; index++)
+        const int recordCount = 12;
+        for (var index = 1; index <= recordCount; index++)
         {
             builder.Append("    { \"sequence\": ").Append(index)
                 .Append(", \"device\": \"sensor-").Append(index.ToString("D3"))
                 .Append("\", \"status\": \"ready\", \"temperature\": ")
                 .Append(20 + index % 9).Append('.').Append(index % 10)
                 .Append(", \"tags\": [\"rgb\", \"wasm\", \"中文\"], \"message\": \"Repeated structured data compresses especially well 🚀\" }")
-                .AppendLine(index == 72 ? string.Empty : ",");
+                .AppendLine(index == recordCount ? string.Empty : ",");
         }
         builder.AppendLine("  ]\n}");
         return builder.ToString();
@@ -253,8 +257,14 @@
             ColorZXingPixelData image;
             if (_generateMode == "high")
             {
+                _compressionInfo = null;
                 image = ColorZXingHighDensity.EncodeRgba(
-                    _payload, _size, _size, _margin, out _compressionInfo);
+                    _payload, _size, _size, _margin, compressed: false);
+            }
+            else if (_generateMode == "high-compressed")
+            {
+                image = ColorZXingHighDensity.EncodeRgba(
+                    _payload, _size, _size, _margin, compressed: true, out _compressionInfo);
             }
             else if (_generateMode == "compressed")
             {
@@ -276,6 +286,7 @@
             {
                 "compressed" => ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height, compressed: true),
                 "high" => ColorZXingHighDensity.DecodeRgba(image.Pixels, image.Width, image.Height),
+                "high-compressed" => ColorZXingHighDensity.DecodeRgba(image.Pixels, image.Width, image.Height),
                 "rgb" => ColorZXingRGB.DecodeRgba(image.Pixels, image.Width, image.Height),
                 _ => ColorZXingBasic.DecodeRgba(image.Pixels, image.Width, image.Height)
             };
@@ -305,6 +316,7 @@
         _decoding = true;
         _decodeError = null;
         _decodedText = null;
+        _detectedFormat = null;
         await InvokeAsync(StateHasChanged);
 
         try
@@ -312,13 +324,24 @@
             _uploadInfo = await _module.InvokeAsync<UploadInfo>("loadSelectedImage", _fileInput, _uploadCanvas, 1400, 12 * 1024 * 1024);
             var pixels = await _module.InvokeAsync<byte[]>("readPixels", _uploadCanvas);
             var stopwatch = Stopwatch.StartNew();
-            _decodedText = _decodeMode switch
+            if (_decodeMode == "auto")
             {
-                "compressed" => ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height, compressed: true),
-                "high" => ColorZXingHighDensity.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height),
-                "rgb" => ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height),
-                _ => ColorZXingBasic.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height)
-            };
+                var result = ColorZXingDecoder.DecodeRgba(
+                    pixels, _uploadInfo.Width, _uploadInfo.Height);
+                _decodedText = result.Text;
+                _detectedFormat = result.Format.ToString();
+            }
+            else
+            {
+                _decodedText = _decodeMode switch
+                {
+                    "compressed" => ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height, compressed: true),
+                    "high" => ColorZXingHighDensity.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height),
+                    "rgb" => ColorZXingRGB.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height),
+                    _ => ColorZXingBasic.DecodeRgba(pixels, _uploadInfo.Width, _uploadInfo.Height)
+                };
+                _detectedFormat = _decodeMode;
+            }
             stopwatch.Stop();
             _decodeMs = stopwatch.Elapsed.TotalMilliseconds;
             if (string.IsNullOrEmpty(_decodedText))

@@ -10,6 +10,31 @@ namespace NUnitTest
     public class UnitTestHighDensity
     {
         [Test]
+        public void CompressionCanBeDisabledForPureSpectrumMuxing()
+        {
+            var value = string.Concat(Enumerable.Repeat("structured high-density payload ", 20));
+            var image = ColorZXingHighDensity.EncodeRgba(
+                value, 600, 600, 4, compressed: false, out var compression);
+
+            Assert.IsFalse(compression.IsCompressed);
+            Assert.AreEqual(compression.OriginalBytes, compression.StoredBytes);
+            Assert.AreEqual(value, ColorZXingHighDensity.DecodeRgba(
+                image.Pixels, image.Width, image.Height));
+        }
+
+        [Test]
+        public void CompressionFurtherReducesCompressibleSpectrumSymbol()
+        {
+            var value = string.Concat(Enumerable.Repeat("repeatable telemetry record;", 120));
+            var uncompressed = ColorZXingHighDensity.EncodeRgba(
+                value, 0, 0, 4, compressed: false);
+            var compressed = ColorZXingHighDensity.EncodeRgba(
+                value, 0, 0, 4, compressed: true);
+
+            Assert.Less(compressed.Width, uncompressed.Width);
+        }
+
+        [Test]
         public void SixLayerRgbaRoundTripsUnicode()
         {
             var value = string.Concat(Enumerable.Repeat(

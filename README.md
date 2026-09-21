@@ -63,13 +63,25 @@ Compressed symbols use a separate wire format, so pass `compressed: true` while 
 `ColorZXingHighDensity` multiplexes **six** binary QR layers—two in each red, green, and blue channel. Every channel uses four evenly spaced intensity levels (`0`, `85`, `170`, `255`), producing a 64-color alphabet and six raw bits per module instead of three.
 
 ```csharp
-using var qr = ColorZXingHighDensity.Encode(largeMessage, 600, 600, 4);
+using var qr = ColorZXingHighDensity.Encode(
+    largeMessage, 600, 600, 4, compressed: false);
 string decoded = ColorZXingHighDensity.Decode(qr);
 ```
 
-The decoder estimates black and white references independently for each channel, normalizes channel gain and white balance, then maps samples to the nearest intensity level. The payload is also compressed when that helps, so structured text can gain from both spectrum muxing and fewer input bytes.
+The decoder estimates black and white references independently for each channel, normalizes channel gain and white balance, then maps samples to the nearest intensity level. Pass `compressed: true` to combine spectrum muxing with payload compression. The overload without a flag retains automatic compression for compatibility.
 
 This mode offers roughly twice the raw channel capacity of regular RGB, but four intensity levels leave less noise margin than two. Use a generous module size, lossless PNG when possible, and test the actual camera, display, printer, and lighting path. High-density symbols require `ColorZXingHighDensity.Decode`.
+
+## Automatic format detection
+
+Use `ColorZXingDecoder` when the scanner does not know which format it received:
+
+```csharp
+ColorZXingDecodeResult result = ColorZXingDecoder.Decode(bitmap);
+Console.WriteLine($"{result.Format}: {result.Text}");
+```
+
+Compressed RGB and 64-color symbols carry layer markers and framed metadata, so they are identified directly. Conventional black-and-white symbols are recognized when their three decoded color planes agree; other three-plane symbols are treated as regular RGB. A deliberately constructed RGB symbol with three identical layers is visually indistinguishable from black-and-white and is therefore classified as black-and-white.
 
 ## Start in seconds
 
