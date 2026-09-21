@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using ColorZXing;
+using ColorZXing.QrValidation;
 using ZXing;
 using ZXing.Common;
 using ZXing.QrCode;
@@ -77,6 +78,13 @@ internal static class Program
 
     private static void Main()
     {
+        if (Environment.GetEnvironmentVariable("COLORZXING_QR_VALIDATION_ONLY") == "1")
+        {
+            Console.WriteLine("ZXing.Net 0.16.11 QR validation baseline (managed core is opt-in/reflection only)");
+            QrValidationBenchmarks.Run(Console.Out, iterations: 10);
+            return;
+        }
+
         var payloadLength = int.TryParse(Environment.GetEnvironmentVariable("COLORZXING_BENCH_LENGTH"), out var configuredLength)
             ? configuredLength
             : 200;
